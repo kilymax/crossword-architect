@@ -1,15 +1,10 @@
-import pandas as pd
-import numpy as np
-import matplotlib
 import os
 import re
+import random
 
 from tkinter import *
 from tkinter import filedialog as fd
 from tkinter import ttk
-from matplotlib import pyplot as plt
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-import matplotlib.ticker as ticker
 
 class Main(Tk):
 
@@ -22,6 +17,7 @@ class Main(Tk):
         self.font8 = 'Verdana 8'
         self.majorcolor = "#b8eaff"
         self.minorcolor = "#a2cee0"
+        self.cellcolor= "#7ade7c"
 
         # Стили виджетов ttk
         buttonstyle = ttk.Style()
@@ -135,13 +131,14 @@ class Main(Tk):
     # выбор ячеек
     def cell_picker(self, event, entry, i, j):
         self.char_check = (self.register(self.char_valid), "%P")
-        if entry['bg'] == "#b5b5b5":
-            entry['bg'] = "white"
-            entry.config(state=NORMAL, validate="key", validatecommand=self.char_check)
+        if self.enabledcell[i][j] == 0:
+            entry.config(state=NORMAL, validate="key", bg=self.cellcolor, 
+                         validatecommand=self.char_check)
             self.enabledcell[i][j] = 1
         else:
-            entry['bg'] = "#b5b5b5"
-            entry.config(state=DISABLED, validate=None, validatecommand=None)
+            entry.delete(0, END)
+            entry.config(state=DISABLED, 
+                         validate=None, validatecommand=None)
             self.enabledcell[i][j] = 0
 
 
@@ -195,12 +192,7 @@ class Main(Tk):
                                 temp = self.dictionary[l]
                                 temp.append(sw)
                                 self.dictionary[l] = temp
-                            else:
-                                pass
-                                #print(sw)
             print(self.dictionary.keys())
-            #print(self.dictionary[min(self.dictionary.keys())])
-            #print(self.dictionary[max(self.dictionary.keys())])
             self.shortest = min(self.dictionary.keys())
             self.longest = max(self.dictionary.keys())
             self.notifiationlabel.config(text='Словарь загружен\n', 
@@ -235,7 +227,7 @@ class Main(Tk):
                         else:
                             CWfont = self.font16
                         tempobj = Entry(self.crosswordframe, justify=CENTER, font=CWfont, 
-                                        relief='solid', state=DISABLED, width=2, bg='#b5b5b5')
+                                        relief='solid', state=DISABLED, width=2)
                         tempobj.grid(row=i, column=j, sticky="nsew")
                         self.enabledcell[i].append(0)
                         self.grid[i].append(tempobj)
@@ -252,9 +244,29 @@ class Main(Tk):
     
     # генерация кроссворда
     def generator(self):
+        # горизонталь
         for i in range(self.h):
+            l = 0
             for j in range(self.w):
-                pass
+                if self.enabledcell[i][j] == 1:
+                    l += 1
+            if l >= self.shortest and l <= self.longest:
+                word = self.dictionary[l][random.randint(0, len(self.dictionary[l])-1)]
+                print(l, word)
+                char_index = 0
+            for j in range(self.w):
+                if self.enabledcell[i][j] == 1:
+                    self.grid[i][j].delete(0, END)
+                    self.grid[i][j].insert(0, word[char_index])
+                    char_index += 1
+                    # word = word.replace(word[0], '')
+                
+        # вертикаль
+        # for j in range(self.w):
+        #     for i in range(self.h):
+        #         if self.enabledcell[j][i] == 1:
+        #             pass
+
 
     # Сохранение dataframe в файл
     def save_in_file(self):
