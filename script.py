@@ -1,3 +1,4 @@
+# -*- coding: utf–8 -*-
 import os
 import re
 import random
@@ -17,7 +18,22 @@ class Main(Tk):
         self.font8 = 'Verdana 8'
         self.majorcolor = "#b8eaff"
         self.minorcolor = "#a2cee0"
-        self.cellcolor= "#7ade7c"
+        self.cellcolor= "#91bbff"
+        self.fixedcellcolor = "#ff5959"
+        self.eng_alphabet = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 
+                             'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']
+        self.ENG_alphabet = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 
+                             'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z']
+        self.rus_alphabet = ['а', 'б', 'в', 'г', 'д', 'е', 'ё', 'ж', 'з', 'и', 'й', 
+                             'к', 'л', 'м', 'н', 'о', 'п', 'р', 'с', 'т', 'у', 'ф', 
+                             'х', 'ц', 'ч', 'ш', 'щ', 'ь', 'ы', 'ъ', 'э', 'ю', 'я']
+        self.RUS_alphabet = ['А', 'Б', 'В', 'Г', 'Д', 'Е', 'Ё', 'Ж', 'З', 'И', 'Й', 
+                             'К', 'Л', 'М', 'Н', 'О', 'П', 'Р', 'С', 'Т', 'У', 'Ф', 
+                             'Х', 'Ц', 'Ч', 'Ш', 'Щ', 'Ь', 'Ы', 'Ъ', 'Э', 'Ю', 'Я', '_']
+        self.tatar_extension = ['Ә', 'ә', 'Ө', 'ө', 'Ү', 'ү', 'Җ', 'җ', 'Ң', 'ң', 'Һ', 'һ']
+        self.digits = [str(i) for i in range(10)]
+        self.global_alphabet = (self.eng_alphabet + self.ENG_alphabet + self.rus_alphabet + 
+                                    self.RUS_alphabet + self.tatar_extension + self.digits)
 
         # Стили виджетов ttk
         buttonstyle = ttk.Style()
@@ -41,7 +57,7 @@ class Main(Tk):
 
         # Наполнение левой части
         self.opendirectorybutton = ttk.Button(self.leftframe, text='Выбрать папку\nс словарями (txt)', 
-                                              width=17, command=self.open_directory)
+                                              width=20, command=self.open_directory)
         self.opendirectorybutton.grid(row=0, column=0, columnspan=3, pady=10, padx=10, sticky="nsew")
         
         self.dictlistbox = Listbox(self.leftframe, border=3, selectmode=MULTIPLE, height=5, font=self.font10)
@@ -112,7 +128,8 @@ class Main(Tk):
         if entry.get() == "":
             entry.insert(0, placeholder)
             entry.configure(state='normal', fg="#b8b8b8")
-    # обработчик колеса мыши
+    
+    # обработчик колеса мыши (unused)
     def sc1_mouse_wheel(self, event):
         # respond to Linux or Windows wheel event
         if event.num == 5 or event.delta == -120:
@@ -126,7 +143,7 @@ class Main(Tk):
     
     # ограничитель ввода
     def char_valid(self, newval):
-        return re.match("^\w{0,1}$", newval) is not None
+        return re.match(u"^\w{0,1}$" , newval, re.UNICODE) is not None 
     
     # выбор ячеек
     def cell_picker(self, event, entry, i, j):
@@ -141,7 +158,20 @@ class Main(Tk):
                          validate=None, validatecommand=None)
             self.enabledcell[i][j] = 0
 
-
+    # фиксация ячеек, заполненных вручную
+    def fixing_cell(self, event, entry, i, j):
+        if event.char in self.global_alphabet:
+            entry.config(validate="key", bg=self.fixedcellcolor, 
+                        validatecommand=self.char_check)
+            self.enabledcell[i][j] = 2
+    
+    # расфиксация ячеек, заполненных вручную
+    def unfixing_cell(self, event, entry, i, j):
+        if self.enabledcell[i][j] == 2:
+            entry.delete(0, END)
+            entry.config(state=NORMAL, validate="key", bg=self.cellcolor, 
+                         validatecommand=self.char_check)
+            self.enabledcell[i][j] = 1
 
     # функция с основным функционалом
     def open_directory(self):
@@ -231,7 +261,11 @@ class Main(Tk):
                         tempobj.grid(row=i, column=j, sticky="nsew")
                         self.enabledcell[i].append(0)
                         self.grid[i].append(tempobj)
+                        self.grid[i][j].insert(0, '')
                         self.grid[i][j].bind('<Button-3>', lambda x, entry=self.grid[i][j], i=i, j=j: self.cell_picker(x, entry, i, j))
+                        self.grid[i][j].bind('<Key>', lambda x, entry=self.grid[i][j], i=i, j=j: self.fixing_cell(x, entry, i, j))
+                        self.grid[i][j].bind('<BackSpace>', lambda x, entry=self.grid[i][j], i=i, j=j: self.unfixing_cell(x, entry, i, j))
+                        self.grid[i][j].bind('<Delete>', lambda x, entry=self.grid[i][j], i=i, j=j: self.unfixing_cell(x, entry, i, j))
                         self.crosswordframe.grid_rowconfigure(i, weight=1)
                         self.crosswordframe.grid_columnconfigure(j, weight=1)
                 self.notifiationlabel.config(text='\n', 
@@ -254,12 +288,12 @@ class Main(Tk):
                 word = self.dictionary[l][random.randint(0, len(self.dictionary[l])-1)]
                 print(l, word)
                 char_index = 0
-            for j in range(self.w):
-                if self.enabledcell[i][j] == 1:
-                    self.grid[i][j].delete(0, END)
-                    self.grid[i][j].insert(0, word[char_index])
-                    char_index += 1
-                    # word = word.replace(word[0], '')
+                for j in range(self.w):
+                    if self.enabledcell[i][j] == 1:
+                        self.grid[i][j].delete(0, END)
+                        self.grid[i][j].insert(0, word[char_index])
+                        char_index += 1
+                        # word = word.replace(word[0], '')
                 
         # вертикаль
         # for j in range(self.w):
