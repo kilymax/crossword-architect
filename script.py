@@ -12,14 +12,17 @@ class Main(Tk):
     def __init__(self):
         super().__init__()
 
-        self.font16 = 'Verdana 16'
-        self.font13 = 'Verdana 13'
-        self.font10 = 'Verdana 10'
-        self.font8 = 'Verdana 8'
+        self.arial = 'Arial'
+        self.font16 = 'Arial 16'
+        self.font13 = 'Arial 13'
+        self.font10 = 'Arial 10'
+        self.font8 = 'Arial 8'
         self.majorcolor = "#b8eaff"
         self.minorcolor = "#a2cee0"
         self.cellcolor= "#91bbff"
-        self.fixedcellcolor = "#ff5959"
+        self.fixedcellcolor = "#57ff47"
+        self.not_found_textcolor = 'red'
+
         self.eng_alphabet = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 
                              'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']
         self.ENG_alphabet = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 
@@ -149,19 +152,21 @@ class Main(Tk):
     def cell_picker(self, event, entry, i, j):
         self.char_check = (self.register(self.char_valid), "%P")
         if self.enabledcell[i][j] == 0:
-            entry.config(state=NORMAL, validate="key", bg=self.cellcolor, 
+            entry.config(state=NORMAL, validate="key", fg='black', bg=self.cellcolor, 
                          validatecommand=self.char_check)
             self.enabledcell[i][j] = 1
         else:
             entry.delete(0, END)
-            entry.config(state=DISABLED, 
+            entry.config(state=DISABLED, fg='black',
                          validate=None, validatecommand=None)
             self.enabledcell[i][j] = 0
 
     # фиксация ячеек, заполненных вручную
     def fixing_cell(self, event, entry, i, j):
         if event.char in self.global_alphabet:
-            entry.config(validate="key", bg=self.fixedcellcolor, 
+            entry.delete(0, END)
+            entry.insert(0, event.char.upper())
+            entry.config(validate="key", fg='black', bg=self.fixedcellcolor, 
                         validatecommand=self.char_check)
             self.enabledcell[i][j] = 2
     
@@ -169,7 +174,7 @@ class Main(Tk):
     def unfixing_cell(self, event, entry, i, j):
         if self.enabledcell[i][j] == 2:
             entry.delete(0, END)
-            entry.config(state=NORMAL, validate="key", bg=self.cellcolor, 
+            entry.config(state=NORMAL, validate="key", fg='black', bg=self.cellcolor, 
                          validatecommand=self.char_check)
             self.enabledcell[i][j] = 1
 
@@ -208,6 +213,7 @@ class Main(Tk):
                     for word in file:
                         word = word.replace('\n', '')
                         word = word.replace(' ', '-')
+                        word = word.upper()
                         # проверка на наличие нежеланных символов (' ', '-')
                         if '-' in word:
                             splitedwords = word.split('-')
@@ -223,6 +229,7 @@ class Main(Tk):
                                 temp.append(sw)
                                 self.dictionary[l] = temp
             print(self.dictionary.keys())
+            #print(self.dictionary.keys())
             self.shortest = min(self.dictionary.keys())
             self.longest = max(self.dictionary.keys())
             self.notifiationlabel.config(text='Словарь загружен\n', 
@@ -247,16 +254,14 @@ class Main(Tk):
                 self.crosswordframe.config(bg='grey', width=w*2, height=h*5)
                 self.grid = []
                 self.enabledcell = []
+                fontcoeff = round( 360/max([self.w, self.h]) )
+                print(fontcoeff)
                 
                 for i in range(self.h):
                     self.grid.append([])
                     self.enabledcell.append([])
                     for j in range(self.w):
-                        if self.w > 25 or self.h > 25:
-                            CWfont = 'Verdana 12'
-                        else:
-                            CWfont = self.font16
-                        tempobj = Entry(self.crosswordframe, justify=CENTER, font=CWfont, 
+                        tempobj = Entry(self.crosswordframe, justify=CENTER, font=f'{self.arial} {fontcoeff} bold', 
                                         relief='solid', state=DISABLED, width=2)
                         tempobj.grid(row=i, column=j, sticky="nsew")
                         self.enabledcell[i].append(0)
@@ -278,28 +283,105 @@ class Main(Tk):
     
     # генерация кроссворда
     def generator(self):
+        print('===')
+        self.notifiationlabel.config(text='\n', foreground=self.not_found_textcolor)
         # горизонталь
         for i in range(self.h):
-            l = 0
+            gridindexes = []
+            gridletters = []
+            full_word_is_fixed = 0
             for j in range(self.w):
                 if self.enabledcell[i][j] == 1:
-                    l += 1
-            if l >= self.shortest and l <= self.longest:
-                word = self.dictionary[l][random.randint(0, len(self.dictionary[l])-1)]
-                print(l, word)
-                char_index = 0
-                for j in range(self.w):
-                    if self.enabledcell[i][j] == 1:
+                    gridindexes.append(j)
+                    self.grid[i][j].delete(0, END)
+                    gridletters.append(self.grid[i][j].get())
+                    full_word_is_fixed = 0
+                if self.enabledcell[i][j] == 2:
+                    gridindexes.append(j)
+                    gridletters.append(self.grid[i][j].get())
+                    full_word_is_fixed += 1
+                    
+                if (self.enabledcell[i][j] == 0 or j+1 == len(self.enabledcell[i]) or i+1 == len(self.enabledcell[j])) and len(gridindexes)>0:
+                    if len(gridindexes) >= self.shortest and len(gridindexes) <= self.longest:
+                        pattern = ''
+                        words_with_fixed_len = '\n'.join(self.dictionary[len(gridindexes)])
+                        for letter in gridletters:
+                            if letter == '':
+                                pattern += '.'
+                            else:
+                                pattern += letter
+                        pattern = re.compile(pattern)
+                        result = pattern.findall(words_with_fixed_len)
+                        try:
+                            word = result[random.randint(0, len(result)-1)]
+                            print(len(gridindexes), pattern, word, '(h)')
+                            for elem in gridindexes:
+                                self.grid[i][elem].insert(0, word[gridindexes.index(elem)])
+                                if self.enabledcell[i][elem] == 1:
+                                    self.grid[i][elem].config(bg=self.cellcolor)
+                                else:
+                                    self.grid[i][elem].config(bg=self.fixedcellcolor)
+                                
+                        except ValueError:
+                            if full_word_is_fixed != len(gridindexes):
+                                self.notifiationlabel.config(text='В базе нет\nподходящих слов', 
+                                    style="notificationlabel.TLabel", foreground=self.not_found_textcolor)
+                                for elem in gridindexes:
+                                    self.grid[i][elem].config(bg=self.not_found_textcolor)
+                    else:
                         self.grid[i][j].delete(0, END)
-                        self.grid[i][j].insert(0, word[char_index])
-                        char_index += 1
-                        # word = word.replace(word[0], '')
+                    gridindexes.clear()
+                    gridletters.clear()
+                    pattern = ''
+                
                 
         # вертикаль
-        # for j in range(self.w):
-        #     for i in range(self.h):
-        #         if self.enabledcell[j][i] == 1:
-        #             pass
+        for j in range(self.w):
+            gridindexes = []
+            gridletters = []
+            full_word_is_fixed = 0
+            for i in range(self.h):
+                if self.enabledcell[i][j] == 1:
+                    gridindexes.append(i)
+                    gridletters.append(self.grid[i][j].get())
+                    full_word_is_fixed = 0
+                if self.enabledcell[i][j] == 2:
+                    gridindexes.append(i)
+                    gridletters.append(self.grid[i][j].get())
+                    full_word_is_fixed += 1
+                    
+                if (self.enabledcell[i][j] == 0 or i+1 == len(self.enabledcell[j])) and len(gridindexes)>0:
+                    if len(gridindexes) >= self.shortest and len(gridindexes) <= self.longest:
+                        pattern = ''
+                        words_with_fixed_len = '\n'.join(self.dictionary[len(gridindexes)])
+                        for letter in gridletters:
+                            if letter == '':
+                                pattern += '.'
+                            else:
+                                pattern += letter
+                        pattern = re.compile(pattern)
+                        result = pattern.findall(words_with_fixed_len)
+                        try:
+                            word = result[random.randint(0, len(result)-1)]
+                            print(len(gridindexes), pattern, word, '(v)')
+                            for elem in gridindexes:
+                                self.grid[elem][j].insert(0, word[gridindexes.index(elem)])
+                                if self.enabledcell[elem][j] == 1:
+                                    self.grid[elem][j].config(bg=self.cellcolor)
+                                else:
+                                    self.grid[elem][j].config(bg=self.fixedcellcolor)
+                        except ValueError:
+                            if full_word_is_fixed != len(gridindexes):
+                                self.notifiationlabel.config(text='В базе нет\nподходящих слов', 
+                                    style="notificationlabel.TLabel", foreground=self.not_found_textcolor)
+                                for elem in gridindexes:
+                                    self.grid[elem][j].config(bg=self.not_found_textcolor)
+                            
+                    else:
+                        self.grid[i][j].delete(0, END)
+                    gridindexes.clear()
+                    gridletters.clear()
+                    pattern = ''
 
 
     # Сохранение dataframe в файл
