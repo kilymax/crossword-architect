@@ -255,7 +255,6 @@ class Main(Tk):
                 self.grid = []
                 self.enabledcell = []
                 fontcoeff = round( 360/max([self.w, self.h]) )
-                print(fontcoeff)
                 
                 for i in range(self.h):
                     self.grid.append([])
@@ -290,6 +289,7 @@ class Main(Tk):
             gridindexes = []
             gridletters = []
             full_word_is_fixed = 0
+            
             for j in range(self.w):
                 if self.enabledcell[i][j] == 1:
                     gridindexes.append(j)
@@ -300,8 +300,8 @@ class Main(Tk):
                     gridindexes.append(j)
                     gridletters.append(self.grid[i][j].get())
                     full_word_is_fixed += 1
-                    
-                if (self.enabledcell[i][j] == 0 or j+1 == len(self.enabledcell[i]) or i+1 == len(self.enabledcell[j])) and len(gridindexes)>0:
+
+                if (self.enabledcell[i][j] == 0 or j+1 == len(self.enabledcell[i])) and len(gridindexes)>0:
                     if len(gridindexes) >= self.shortest and len(gridindexes) <= self.longest:
                         pattern = ''
                         words_with_fixed_len = '\n'.join(self.dictionary[len(gridindexes)])
@@ -314,7 +314,7 @@ class Main(Tk):
                         result = pattern.findall(words_with_fixed_len)
                         try:
                             word = result[random.randint(0, len(result)-1)]
-                            print(len(gridindexes), pattern, word, '(h)')
+                            print('len', len(gridindexes), pattern, word, '(h)')
                             for elem in gridindexes:
                                 self.grid[i][elem].insert(0, word[gridindexes.index(elem)])
                                 if self.enabledcell[i][elem] == 1:
@@ -349,8 +349,8 @@ class Main(Tk):
                     gridindexes.append(i)
                     gridletters.append(self.grid[i][j].get())
                     full_word_is_fixed += 1
-                    
-                if (self.enabledcell[i][j] == 0 or i+1 == len(self.enabledcell[j])) and len(gridindexes)>0:
+                
+                if (self.enabledcell[i][j] == 0 or i+1 == len(self.enabledcell)) and len(gridindexes)>0:
                     if len(gridindexes) >= self.shortest and len(gridindexes) <= self.longest:
                         pattern = ''
                         words_with_fixed_len = '\n'.join(self.dictionary[len(gridindexes)])
@@ -363,7 +363,7 @@ class Main(Tk):
                         result = pattern.findall(words_with_fixed_len)
                         try:
                             word = result[random.randint(0, len(result)-1)]
-                            print(len(gridindexes), pattern, word, '(v)')
+                            print('len', len(gridindexes), pattern, word, '(v)')
                             for elem in gridindexes:
                                 self.grid[elem][j].insert(0, word[gridindexes.index(elem)])
                                 if self.enabledcell[elem][j] == 1:
@@ -378,7 +378,8 @@ class Main(Tk):
                                     self.grid[elem][j].config(bg=self.not_found_textcolor)
                             
                     else:
-                        self.grid[i][j].delete(0, END)
+                        pass
+                        #self.grid[i][j].delete(0, END)
                     gridindexes.clear()
                     gridletters.clear()
                     pattern = ''
