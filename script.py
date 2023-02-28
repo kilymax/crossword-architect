@@ -2,19 +2,12 @@
 import os
 import re
 import random
-import time
 
 from tkinter import *
 from tkinter import filedialog as fd
 from tkinter import ttk
 
-from borb.pdf import Document
-from borb.pdf import Page
-from borb.pdf import SingleColumnLayout
-from borb.pdf import Paragraph
-from borb.pdf import PDF
-from PIL import Image
-from PIL import ImageGrab
+from PIL import ImageGrab, ImageEnhance
 
 
 
@@ -70,7 +63,7 @@ class Main(Tk):
         self.grid_columnconfigure(1, weight=1)
 
         # Наполнение левой части
-        self.opendirectorybutton = ttk.Button(self.leftframe, text='Выбрать папку\nс словарями (txt)', 
+        self.opendirectorybutton = ttk.Button(self.leftframe, text='Выбрать папку\nсо словарями (txt)', 
                                               width=22, command=self.open_directory)
         self.opendirectorybutton.grid(row=0, column=0, columnspan=3, pady=10, padx=10, sticky="nsew")
         
@@ -284,7 +277,8 @@ class Main(Tk):
                 self.h = int(h)
                 self.grid = []
                 self.enabledcell = []
-                fontcoeff = round( 500/max([self.w, self.h]) )
+                #self.crosswordframe.config(width=self.w*2, height=self.h*5)
+                fontcoeff = round( 400/max([self.w, self.h]) )
                 
                 for i in range(self.h):
                     self.grid.append([])
@@ -337,13 +331,13 @@ class Main(Tk):
         # алгоритм заполнения сетки
         while iteration <= iteration_limit and not horizontal_is_full and not vertical_is_full:
             vertical_is_full = True
+            self.wordscount = 0
             print(f'=== {iteration} итерация ===')
             # горизонталь
             for i in range(self.h):
                 gridindexes = []
                 gridletters = []
                 full_word_is_fixed = 0
-                
                 for j in range(self.w):
                     if self.enabledcell[i][j] == 1:
                         enablecellcheck += 1
@@ -372,6 +366,7 @@ class Main(Tk):
                             result = pattern.findall(words_with_fixed_len)
                             try:
                                 word = result[random.randint(0, len(result)-1)]
+                                self.wordscount += 1
                                 print('len', len(gridindexes), pattern, word, '(h)')
                                 for elem in gridindexes:
                                     self.grid[i][elem].insert(0, word[gridindexes.index(elem)])
@@ -382,10 +377,10 @@ class Main(Tk):
                             except:
                                 horizontal_is_full = False
                                 if full_word_is_fixed != len(gridindexes):
-                                    # self.notifiationlabel.config(text='В базе нет\nподходящих слов', 
-                                    #     style="notificationlabel.TLabel", foreground=self.not_found_textcolor)
                                     for elem in gridindexes:
                                         self.grid[i][elem].config(bg=self.not_found_textcolor)
+                                else:
+                                    self.wordscount += 1
                         else:
                             self.grid[i][j].delete(0, END)
                         gridindexes.clear()
@@ -424,6 +419,7 @@ class Main(Tk):
                             result = pattern.findall(words_with_fixed_len)
                             try:
                                 word = result[random.randint(0, len(result)-1)]
+                                self.wordscount += 1
                                 print('len', len(gridindexes), pattern, word, '(v)')
                                 for elem in gridindexes:
                                     self.grid[elem][j].insert(0, word[gridindexes.index(elem)])
@@ -433,19 +429,16 @@ class Main(Tk):
                                         self.grid[elem][j].config(bg=self.fixedcellcolor)
                             except:
                                 if full_word_is_fixed != len(gridindexes):
-                                    # self.notifiationlabel.config(text='В базе нет\nподходящих слов', 
-                                    #     style="notificationlabel.TLabel", foreground=self.not_found_textcolor)
                                     for elem in gridindexes:
                                         self.grid[elem][j].config(bg=self.not_found_textcolor)
                                     vertical_is_full = False
-                                
+                                else:
+                                    self.wordscount += 1
                         else:
                             pass
-                            #self.grid[i][j].delete(0, END)
                         gridindexes.clear()
                         gridletters.clear()
                         pattern = ''
-            
             iteration += 1
         
         if iteration > iteration_limit:
@@ -464,7 +457,10 @@ class Main(Tk):
         y2 = y1 + self.crosswordframe.winfo_height() + 9
 
         snapshot = ImageGrab.grab(bbox=(x1, y1, x2, y2))
-        snapshot.save(f'{self.savefolderpath}/CW.pdf', format='PDF', quality=200)
+        enhancer = ImageEnhance.Sharpness(snapshot)
+        snapshot_enhanced = enhancer.enhance(2)
+        snapshot_enhanced.save(f'{self.savefolderpath}/CW_{self.wordscount}_[{self.w}x{self.h}].pdf', 
+                        format='PDF', quality=200)
 
 
 if __name__ == "__main__":
