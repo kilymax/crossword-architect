@@ -13,6 +13,9 @@ from borb.pdf import Page
 from borb.pdf import SingleColumnLayout
 from borb.pdf import Paragraph
 from borb.pdf import PDF
+from PIL import Image
+from PIL import ImageGrab
+
 
 
 class Main(Tk):
@@ -129,7 +132,9 @@ class Main(Tk):
         self.generatorbutton.grid(row=9, column=0, columnspan=3, pady=10, padx=10, sticky="nsew")
         # self.leftframe.grid_rowconfigure(8, weight=1)
 
-        self.savebutton = ttk.Button(self.leftframe, text='Сохранить в\nPDF-файл', command="")
+        self.savebutton = ttk.Button(self.leftframe, text='Сохранить в\nPDF-файл',
+                                     command=lambda: self.notifiationlabel.config(text='Сетка отсутствует\nили она пуста',
+                                                                                  foreground='red',))
         self.savebutton.grid(row=10, column=0, columnspan=3, pady=10, padx=10, sticky="nsew")
         # self.leftframe.grid_rowconfigure(9, weight=1)
 
@@ -277,10 +282,9 @@ class Main(Tk):
             finally:
                 self.w = int(w)
                 self.h = int(h)
-                self.crosswordframe.config(bg='grey', width=w*2, height=h*5)
                 self.grid = []
                 self.enabledcell = []
-                fontcoeff = round( 360/max([self.w, self.h]) )
+                fontcoeff = round( 500/max([self.w, self.h]) )
                 
                 for i in range(self.h):
                     self.grid.append([])
@@ -448,26 +452,25 @@ class Main(Tk):
             self.notifiationlabel.config(text='В базе нет\nподходящих слов!', foreground=self.not_found_textcolor)
         if enablecellcheck < self.shortest:
             self.notifiationlabel.config(text='Некорректно\nвыбраны ячейки!', foreground=self.not_found_textcolor)
+        self.savebutton.config(command=self.save_in_file)
 
     # Сохранение в pdf файл
     def save_in_file(self):
-        pdf = Document()
-        page = Page()
-        pdf.add_page(page)
-        layout = SingleColumnLayout(page)
-        layout.add(Paragraph(f"Кроссворд {self.w} x {self.h}"))
-        with open(self.folderpath, "wb") as pdf_file_handle:
-            PDF.dumps(pdf_file_handle, pdf)
-        # self.original_file_name = self.folderpath.split('/')[-1:][0]
-        # self.modified_file_path = '/'.join(self.folderpath.split('/')[:-1:1]) + '/modified_' + self.original_file_name
-        # self.df.to_csv(self.modified_file_path, sep='\t', index= False, float_format="str", encoding="utf-16")
-        # self.notificationlabel.config(text='Файл успешно сохранен!', style="dynamic.TLabel", foreground='green')
-        # self.result_path = '/'.join(self.folderpath.split('/')[:-1:1])
-        # os.startfile(self.result_path)
+        self.savefolderpath = fd.askdirectory()
+
+        x1 = self.winfo_x() + self.rightframe.winfo_x() + self.crosswordframe.winfo_x() + 4
+        y1 = self.winfo_y() + self.rightframe.winfo_y() + self.crosswordframe.winfo_y() + 27
+        x2 = x1 + self.crosswordframe.winfo_width() + 8
+        y2 = y1 + self.crosswordframe.winfo_height() + 9
+
+        snapshot = ImageGrab.grab(bbox=(x1, y1, x2, y2))
+        snapshot.save(f'{self.savefolderpath}/CW.pdf', format='PDF', quality=200)
+
 
 if __name__ == "__main__":
     main = Main()
     main.geometry(f'{900}x{640}') # main.winfo_screenheight()
+    main.wm_geometry("+%d+%d" % (30, 30))
     main.title('CSV Convolution')
     main['bg'] = 'white'
     #main.attributes('-fullscreen', True)
