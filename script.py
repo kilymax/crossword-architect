@@ -2,10 +2,18 @@
 import os
 import re
 import random
+import time
 
 from tkinter import *
 from tkinter import filedialog as fd
 from tkinter import ttk
+
+from borb.pdf import Document
+from borb.pdf import Page
+from borb.pdf import SingleColumnLayout
+from borb.pdf import Paragraph
+from borb.pdf import PDF
+
 
 class Main(Tk):
 
@@ -60,7 +68,7 @@ class Main(Tk):
 
         # Наполнение левой части
         self.opendirectorybutton = ttk.Button(self.leftframe, text='Выбрать папку\nс словарями (txt)', 
-                                              width=20, command=self.open_directory)
+                                              width=22, command=self.open_directory)
         self.opendirectorybutton.grid(row=0, column=0, columnspan=3, pady=10, padx=10, sticky="nsew")
         
         self.dictlistbox = Listbox(self.leftframe, border=3, selectmode=MULTIPLE, height=5, font=self.font10)
@@ -70,14 +78,15 @@ class Main(Tk):
         self.infolabel.grid(row=2, column=0, columnspan=3, pady=10, padx=10, sticky="nsew")
 
         self.selectdictbutton = ttk.Button(self.leftframe, text='Загрузить словари',
-                                    command=lambda: self.notifiationlabel.config(text='Укажите\nразмер сетки', 
+                                    command=lambda: self.notifiationlabel.config(text='Директория с\nсловарями не выбрана!', 
                                     style="notificationlabel.TLabel", foreground='red'))
         self.selectdictbutton.grid(row=3, column=0, columnspan=3, pady=10, padx=10, sticky="nsew")
 
         self.notifiationlabel = ttk.Label(self.leftframe, style="notificationlabel.TLabel", text=1*'\n')
         self.notifiationlabel.grid(row=4, column=0, columnspan=3, pady=10, padx=10, sticky="nsew")
 
-        self.sizelabel = ttk.Label(self.leftframe, style="infolabel.TLabel", background=self.majorcolor, text='Укажите размер сетки')
+        self.sizelabel = ttk.Label(self.leftframe, style="infolabel.TLabel", 
+                                   background=self.majorcolor, text='Укажите размер сетки')
         self.sizelabel.grid(row=5, column=0, columnspan=3, pady=5, padx=10, sticky="nsew")
         
         # Первое поле для ввода
@@ -106,12 +115,22 @@ class Main(Tk):
                         command= lambda: self.make_crossword_grid(self.entry1.get(), self.entry2.get()))
         self.gridbutton.grid(row=7, column=0, columnspan=3, pady=10, padx=10, sticky="nsew")
 
-        self.generatorbutton = ttk.Button(self.leftframe, text='Сгенерировать\nкроссворд', command=self.generator)
-        self.generatorbutton.grid(row=8, column=0, columnspan=3, pady=10, padx=10, sticky="nsew")
+        self.entry3 = Entry(self.leftframe, justify=CENTER, width=25)
+        self.entry3.grid(row=8, column=0, padx=10, columnspan=3)
+        self.entry3.insert(0, 'Кол-во итераций (def 20)')
+        self.entry3.configure(state='normal', fg="#b8b8b8")
+        self.entrybind3_in = self.entry3.bind('<Button-1>', lambda x: self.on_focus_in(self.entry3))
+        self.entrybind3_out = self.entry3.bind(
+            '<FocusOut>', lambda x: self.on_focus_out(self.entry3, 'Кол-во итераций (def 20)'))
+
+        self.generatorbutton = ttk.Button(self.leftframe, text='Сгенерировать\nкроссворд', 
+                                          command=lambda: self.notifiationlabel.config(text='Словарь не загружен\nили не построена сетка', 
+                                          style="notificationlabel.TLabel", foreground='red'))
+        self.generatorbutton.grid(row=9, column=0, columnspan=3, pady=10, padx=10, sticky="nsew")
         # self.leftframe.grid_rowconfigure(8, weight=1)
 
         self.savebutton = ttk.Button(self.leftframe, text='Сохранить в\nPDF-файл', command="")
-        self.savebutton.grid(row=9, column=0, columnspan=3, pady=10, padx=10, sticky="nsew")
+        self.savebutton.grid(row=10, column=0, columnspan=3, pady=10, padx=10, sticky="nsew")
         # self.leftframe.grid_rowconfigure(9, weight=1)
 
 
@@ -232,7 +251,14 @@ class Main(Tk):
             #print(self.dictionary.keys())
             self.shortest = min(self.dictionary.keys())
             self.longest = max(self.dictionary.keys())
-            self.notifiationlabel.config(text='Словарь загружен\n', 
+            
+            try:
+                if self.w > 0:
+                    self.generatorbutton.config(command=self.generator)
+            except:
+                pass
+            finally:
+                self.notifiationlabel.config(text='Словарь загружен\n', 
                                 style="notificationlabel.TLabel", foreground='green')
         else:
             self.shortest = '-'
@@ -272,9 +298,14 @@ class Main(Tk):
                         self.grid[i][j].bind('<Delete>', lambda x, entry=self.grid[i][j], i=i, j=j: self.unfixing_cell(x, entry, i, j))
                         self.crosswordframe.grid_rowconfigure(i, weight=1)
                         self.crosswordframe.grid_columnconfigure(j, weight=1)
-                self.notifiationlabel.config(text='\n', 
+                self.notifiationlabel.config(text='\n',
                                 style="notificationlabel.TLabel", foreground='red')
-                self.generatorbutton.config(command=self.generator)
+                try:
+                    if len(self.dictionary) != 0:
+                        self.generatorbutton.config(command=self.generator)
+                except:
+                    self.notifiationlabel.config(text='Словарь не загружен!\n',
+                                    style="notificationlabel.TLabel", foreground='red')
         else:
             self.notifiationlabel.config(text='Укажите размер сетки\n', 
                             style="notificationlabel.TLabel", foreground='red')
@@ -282,117 +313,157 @@ class Main(Tk):
     
     # генерация кроссворда
     def generator(self):
-        print('===')
+        iteration = 1
+        enablecellcheck = 0
+        horizontal_is_full = False
+        vertical_is_full = False
         self.notifiationlabel.config(text='\n', foreground=self.not_found_textcolor)
-        # горизонталь
-        for i in range(self.h):
-            gridindexes = []
-            gridletters = []
-            full_word_is_fixed = 0
-            
-            for j in range(self.w):
-                if self.enabledcell[i][j] == 1:
-                    gridindexes.append(j)
-                    self.grid[i][j].delete(0, END)
-                    gridletters.append(self.grid[i][j].get())
-                    full_word_is_fixed = 0
-                if self.enabledcell[i][j] == 2:
-                    gridindexes.append(j)
-                    gridletters.append(self.grid[i][j].get())
-                    full_word_is_fixed += 1
-
-                if (self.enabledcell[i][j] == 0 or j+1 == len(self.enabledcell[i])) and len(gridindexes)>0:
-                    if len(gridindexes) >= self.shortest and len(gridindexes) <= self.longest:
-                        pattern = ''
-                        words_with_fixed_len = '\n'.join(self.dictionary[len(gridindexes)])
-                        for letter in gridletters:
-                            if letter == '':
-                                pattern += '.'
-                            else:
-                                pattern += letter
-                        pattern = re.compile(pattern)
-                        result = pattern.findall(words_with_fixed_len)
-                        try:
-                            word = result[random.randint(0, len(result)-1)]
-                            print('len', len(gridindexes), pattern, word, '(h)')
-                            for elem in gridindexes:
-                                self.grid[i][elem].insert(0, word[gridindexes.index(elem)])
-                                if self.enabledcell[i][elem] == 1:
-                                    self.grid[i][elem].config(bg=self.cellcolor)
-                                else:
-                                    self.grid[i][elem].config(bg=self.fixedcellcolor)
-                                
-                        except ValueError:
-                            if full_word_is_fixed != len(gridindexes):
-                                self.notifiationlabel.config(text='В базе нет\nподходящих слов', 
-                                    style="notificationlabel.TLabel", foreground=self.not_found_textcolor)
-                                for elem in gridindexes:
-                                    self.grid[i][elem].config(bg=self.not_found_textcolor)
-                    else:
-                        self.grid[i][j].delete(0, END)
-                    gridindexes.clear()
-                    gridletters.clear()
-                    pattern = ''
-                
-                
-        # вертикаль
-        for j in range(self.w):
-            gridindexes = []
-            gridletters = []
-            full_word_is_fixed = 0
+        
+        # проверка валидности лимитирующего значения для количества итераций
+        iteration_limit = self.entry3.get()
+        if iteration_limit.isnumeric():
+            iteration_limit = int(iteration_limit)
+            if iteration_limit > 0 and iteration_limit < 10000:
+                iteration_limit = iteration_limit
+            else:
+                iteration_limit = 20
+        else:
+            iteration_limit = 20
+        
+        # алгоритм заполнения сетки
+        while iteration <= iteration_limit and not horizontal_is_full and not vertical_is_full:
+            vertical_is_full = True
+            print(f'=== {iteration} итерация ===')
+            # горизонталь
             for i in range(self.h):
-                if self.enabledcell[i][j] == 1:
-                    gridindexes.append(i)
-                    gridletters.append(self.grid[i][j].get())
-                    full_word_is_fixed = 0
-                if self.enabledcell[i][j] == 2:
-                    gridindexes.append(i)
-                    gridletters.append(self.grid[i][j].get())
-                    full_word_is_fixed += 1
+                gridindexes = []
+                gridletters = []
+                full_word_is_fixed = 0
                 
-                if (self.enabledcell[i][j] == 0 or i+1 == len(self.enabledcell)) and len(gridindexes)>0:
-                    if len(gridindexes) >= self.shortest and len(gridindexes) <= self.longest:
-                        pattern = ''
-                        words_with_fixed_len = '\n'.join(self.dictionary[len(gridindexes)])
-                        for letter in gridletters:
-                            if letter == '':
-                                pattern += '.'
-                            else:
-                                pattern += letter
-                        pattern = re.compile(pattern)
-                        result = pattern.findall(words_with_fixed_len)
-                        try:
-                            word = result[random.randint(0, len(result)-1)]
-                            print('len', len(gridindexes), pattern, word, '(v)')
-                            for elem in gridindexes:
-                                self.grid[elem][j].insert(0, word[gridindexes.index(elem)])
-                                if self.enabledcell[elem][j] == 1:
-                                    self.grid[elem][j].config(bg=self.cellcolor)
+                for j in range(self.w):
+                    if self.enabledcell[i][j] == 1:
+                        enablecellcheck += 1
+                        gridindexes.append(j)
+                        self.grid[i][j].delete(0, END)
+                        gridletters.append(self.grid[i][j].get())
+                        full_word_is_fixed = 0
+                    self.grid[i][j].config(bg=self.cellcolor)
+                    if self.enabledcell[i][j] == 2:
+                        enablecellcheck += 1
+                        gridindexes.append(j)
+                        gridletters.append(self.grid[i][j].get())
+                        full_word_is_fixed += 1
+                        self.grid[i][j].config(bg=self.fixedcellcolor)
+
+                    if (self.enabledcell[i][j] == 0 or j+1 == len(self.enabledcell[i])) and len(gridindexes)>0:
+                        if len(gridindexes) >= self.shortest and len(gridindexes) <= self.longest:
+                            pattern = ''
+                            words_with_fixed_len = '\n'.join(self.dictionary[len(gridindexes)])
+                            for letter in gridletters:
+                                if letter == '':
+                                    pattern += '.'
                                 else:
-                                    self.grid[elem][j].config(bg=self.fixedcellcolor)
-                        except ValueError:
-                            if full_word_is_fixed != len(gridindexes):
-                                self.notifiationlabel.config(text='В базе нет\nподходящих слов', 
-                                    style="notificationlabel.TLabel", foreground=self.not_found_textcolor)
+                                    pattern += letter
+                            pattern = re.compile(pattern)
+                            result = pattern.findall(words_with_fixed_len)
+                            try:
+                                word = result[random.randint(0, len(result)-1)]
+                                print('len', len(gridindexes), pattern, word, '(h)')
                                 for elem in gridindexes:
-                                    self.grid[elem][j].config(bg=self.not_found_textcolor)
-                            
-                    else:
-                        pass
-                        #self.grid[i][j].delete(0, END)
-                    gridindexes.clear()
-                    gridletters.clear()
-                    pattern = ''
+                                    self.grid[i][elem].insert(0, word[gridindexes.index(elem)])
+                                    if self.enabledcell[i][elem] == 1:
+                                        self.grid[i][elem].config(bg=self.cellcolor)
+                                    else:
+                                        self.grid[i][elem].config(bg=self.fixedcellcolor)
+                            except:
+                                horizontal_is_full = False
+                                if full_word_is_fixed != len(gridindexes):
+                                    # self.notifiationlabel.config(text='В базе нет\nподходящих слов', 
+                                    #     style="notificationlabel.TLabel", foreground=self.not_found_textcolor)
+                                    for elem in gridindexes:
+                                        self.grid[i][elem].config(bg=self.not_found_textcolor)
+                        else:
+                            self.grid[i][j].delete(0, END)
+                        gridindexes.clear()
+                        gridletters.clear()
+                        pattern = ''
+                        
+            # вертикаль
+            for j in range(self.w):
+                gridindexes = []
+                gridletters = []
+                full_word_is_fixed = 0
+                for i in range(self.h):
+                    if self.enabledcell[i][j] == 1:
+                        enablecellcheck += 1
+                        gridindexes.append(i)
+                        gridletters.append(self.grid[i][j].get())
+                        full_word_is_fixed = 0
+                        self.grid[i][j].config(bg=self.cellcolor)
+                    if self.enabledcell[i][j] == 2:
+                        enablecellcheck += 1
+                        gridindexes.append(i)
+                        gridletters.append(self.grid[i][j].get())
+                        full_word_is_fixed += 1
+                        self.grid[i][j].config(bg=self.fixedcellcolor)
+                    
+                    if (self.enabledcell[i][j] == 0 or i+1 == len(self.enabledcell)) and len(gridindexes)>0:
+                        if len(gridindexes) >= self.shortest and len(gridindexes) <= self.longest:
+                            pattern = ''
+                            words_with_fixed_len = '\n'.join(self.dictionary[len(gridindexes)])
+                            for letter in gridletters:
+                                if letter == '':
+                                    pattern += '.'
+                                else:
+                                    pattern += letter
+                            pattern = re.compile(pattern)
+                            result = pattern.findall(words_with_fixed_len)
+                            try:
+                                word = result[random.randint(0, len(result)-1)]
+                                print('len', len(gridindexes), pattern, word, '(v)')
+                                for elem in gridindexes:
+                                    self.grid[elem][j].insert(0, word[gridindexes.index(elem)])
+                                    if self.enabledcell[elem][j] == 1:
+                                        self.grid[elem][j].config(bg=self.cellcolor)
+                                    else:
+                                        self.grid[elem][j].config(bg=self.fixedcellcolor)
+                            except:
+                                if full_word_is_fixed != len(gridindexes):
+                                    # self.notifiationlabel.config(text='В базе нет\nподходящих слов', 
+                                    #     style="notificationlabel.TLabel", foreground=self.not_found_textcolor)
+                                    for elem in gridindexes:
+                                        self.grid[elem][j].config(bg=self.not_found_textcolor)
+                                    vertical_is_full = False
+                                
+                        else:
+                            pass
+                            #self.grid[i][j].delete(0, END)
+                        gridindexes.clear()
+                        gridletters.clear()
+                        pattern = ''
+            
+            iteration += 1
+        
+        if iteration > iteration_limit:
+            self.notifiationlabel.config(text='В базе нет\nподходящих слов!', foreground=self.not_found_textcolor)
+        if enablecellcheck < self.shortest:
+            self.notifiationlabel.config(text='Некорректно\nвыбраны ячейки!', foreground=self.not_found_textcolor)
 
-
-    # Сохранение dataframe в файл
+    # Сохранение в pdf файл
     def save_in_file(self):
-        self.original_file_name = self.folderpath.split('/')[-1:][0]
-        self.modified_file_path = '/'.join(self.folderpath.split('/')[:-1:1]) + '/modified_' + self.original_file_name
-        self.df.to_csv(self.modified_file_path, sep='\t', index= False, float_format="str", encoding="utf-16")
-        self.notificationlabel.config(text='Файл успешно сохранен!', style="dynamic.TLabel", foreground='green')
-        self.result_path = '/'.join(self.folderpath.split('/')[:-1:1])
-        os.startfile(self.result_path)
+        pdf = Document()
+        page = Page()
+        pdf.add_page(page)
+        layout = SingleColumnLayout(page)
+        layout.add(Paragraph(f"Кроссворд {self.w} x {self.h}"))
+        with open(self.folderpath, "wb") as pdf_file_handle:
+            PDF.dumps(pdf_file_handle, pdf)
+        # self.original_file_name = self.folderpath.split('/')[-1:][0]
+        # self.modified_file_path = '/'.join(self.folderpath.split('/')[:-1:1]) + '/modified_' + self.original_file_name
+        # self.df.to_csv(self.modified_file_path, sep='\t', index= False, float_format="str", encoding="utf-16")
+        # self.notificationlabel.config(text='Файл успешно сохранен!', style="dynamic.TLabel", foreground='green')
+        # self.result_path = '/'.join(self.folderpath.split('/')[:-1:1])
+        # os.startfile(self.result_path)
 
 if __name__ == "__main__":
     main = Main()
