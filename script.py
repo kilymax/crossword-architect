@@ -42,6 +42,9 @@ class Main(Tk):
         self.global_alphabet = (self.eng_alphabet + self.ENG_alphabet + self.rus_alphabet + 
                                     self.RUS_alphabet + self.tatar_extension + self.digits)
 
+        self.char_check = (self.register(self.char_valid), "%P")
+
+
         # Стили виджетов ttk
         buttonstyle = ttk.Style()
         buttonstyle.configure("TButton", background="grey", foreground="black", 
@@ -167,7 +170,7 @@ class Main(Tk):
     
     # выбор ячеек
     def cell_picker(self, event, entry, i, j):
-        self.char_check = (self.register(self.char_valid), "%P")
+        # self.char_check = (self.register(self.char_valid), "%P")
         if self.enabledcell[i][j] == 0:
             entry.config(state=NORMAL, validate="key", fg='black', bg=self.cellcolor, 
                          validatecommand=self.char_check)
@@ -199,8 +202,8 @@ class Main(Tk):
     def open_directory(self):
         try:
             # выбор и открытие папки
-            # self.folderpath = fd.askdirectory()
-            self.folderpath = 'c:/.My/Freelance/CrosswordArchitect'
+            self.folderpath = fd.askdirectory()
+            # self.folderpath = 'c:/.My/Freelance/CrosswordArchitect'
             self.notifiationlabel.config(text=1*'\n', 
                             style="notificationlabel.TLabel", foreground='red')
             # Чтение данных и сохранение в массивы
@@ -285,9 +288,10 @@ class Main(Tk):
                     self.enabledcell.append([])
                     for j in range(self.w):
                         tempobj = Entry(self.crosswordframe, justify=CENTER, font=f'{self.arial} {fontcoeff} bold', 
-                                        relief='solid', state=DISABLED, width=2)
+                                        relief='solid', width=2, state=NORMAL, validate="key", bg=self.cellcolor, 
+                                        validatecommand=self.char_check)
                         tempobj.grid(row=i, column=j, sticky="nsew")
-                        self.enabledcell[i].append(0)
+                        self.enabledcell[i].append(1)
                         self.grid[i].append(tempobj)
                         self.grid[i][j].insert(0, '')
                         self.grid[i][j].bind('<Button-3>', lambda x, entry=self.grid[i][j], i=i, j=j: self.cell_picker(x, entry, i, j))
@@ -449,6 +453,8 @@ class Main(Tk):
 
     # Сохранение в pdf файл
     def save_in_file(self):
+        self.wm_geometry("+%d+%d" % (100, 50))
+
         self.savefolderpath = fd.askdirectory()
 
         x1 = self.winfo_x() + self.rightframe.winfo_x() + self.crosswordframe.winfo_x() + 4
@@ -466,10 +472,12 @@ class Main(Tk):
 if __name__ == "__main__":
     main = Main()
     main.geometry(f'{900}x{640}') # main.winfo_screenheight()
-    main.wm_geometry("+%d+%d" % (30, 30))
+    main.wm_geometry("+%d+%d" % (100, 50))
     main.title('CSV Convolution')
     main['bg'] = 'white'
     #main.attributes('-fullscreen', True)
 
 
     main.mainloop()
+
+    # pyinstaller -F -w -i 'ico.png' script.py
