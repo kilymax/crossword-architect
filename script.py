@@ -2,7 +2,6 @@
 import os
 import re
 import random
-import msvcrt
 
 from tkinter import *
 from tkinter import filedialog as fd
@@ -20,15 +19,26 @@ class Main(Tk):
 
         getdefaultencoding()
         self.arial = 'Arial'
-        self.font16 = 'Arial 16'
-        self.font13 = 'Arial 13'
-        self.font10 = 'Arial 10'
-        self.font8 = 'Arial 8'
-        self.majorcolor = "#b8eaff"
-        self.minorcolor = "#a2cee0"
-        self.cellcolor= "#91bbff"
+        self.font16 = 'Arial 16 bold'
+        self.font13 = 'Arial 13 bold'
+        self.font10 = 'Arial 10 bold'
+        self.font8 = 'Arial 8 bold'
+        # main color scheme
+        self.majorcolor = "#0e00a3"
+        self.minorcolor = "#060080"
+        self.rightframecolor = "#d9d9d9"
+        # button colors
+        self.buttonfgcolor = "black"
+        self.buttoncolor = "#cfcfcf"
+        self.activebuttoncolor = "#ffe100"
+        # label colors
+        self.labelfgcolor = "white"
+        self.approvecolor = "#14cc00"
+        self.deniedcolor = "red"
+        #entry colors
+        self.disabledentrycolor = "#242424"
+        self.cellcolor = "#91bbff"
         self.fixedcellcolor = "#57ff47"
-        self.not_found_textcolor = 'red'
 
         self.eng_alphabet = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 
                              'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']
@@ -50,10 +60,14 @@ class Main(Tk):
 
         # Стили виджетов ttk
         buttonstyle = ttk.Style()
-        buttonstyle.configure("TButton", background="grey", foreground="black", 
+        buttonstyle.theme_use('alt')
+        buttonstyle.configure("TButton", background=self.buttoncolor, color=self.buttoncolor, relief='solid',
+                              foreground=self.buttonfgcolor, focusthickness=0, focuscolor='none', 
                                 font=self.font13, justify="center")
+        buttonstyle.map('TButton', background=[('active', self.activebuttoncolor)])
+
         infolabel = ttk.Style()
-        infolabel.configure("infolabel.TLabel", foreground="black", 
+        infolabel.configure("infolabel.TLabel", foreground=self.labelfgcolor, 
                                     background=self.minorcolor, font=self.font10, padding=[0, 0])
         notificationlabel = ttk.Style()
         notificationlabel.configure("notificationlabel.TLabel", 
@@ -63,7 +77,7 @@ class Main(Tk):
         # Левая и правая части интерфейса
         self.leftframe = Frame(self, bg=self.majorcolor)
         self.leftframe.grid(row=0, column=0, sticky="nsew")
-        self.rightframe = Frame(self, bg='white')
+        self.rightframe = Frame(self, bg=self.rightframecolor)
         self.rightframe.grid(row=0, column=1, sticky="nsew")
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(1, weight=1)
@@ -80,7 +94,7 @@ class Main(Tk):
         self.infolabel.grid(row=2, column=0, columnspan=4, pady=10, padx=10, sticky="nsew")
 
         self.selectdictbutton = ttk.Button(self.leftframe, text='Загрузить словари',
-                                    command=lambda: self.notifiationlabel.config(text='Директория с\nсловарями не выбрана!', 
+                                    command=lambda: self.notifiationlabel.config(text='Директория со\nсловарями не выбрана!', 
                                     style="notificationlabel.TLabel", foreground='red'))
         self.selectdictbutton.grid(row=3, column=0, columnspan=4, pady=10, padx=10, sticky="nsew")
 
@@ -88,21 +102,22 @@ class Main(Tk):
         self.notifiationlabel.grid(row=4, column=0, columnspan=4, pady=10, padx=10, sticky="nsew")
 
         self.sizelabel = ttk.Label(self.leftframe, style="infolabel.TLabel", 
-                                   background=self.majorcolor, text='Размер сетки                 Инверсия')
-        self.sizelabel.grid(row=5, column=0, columnspan=4, pady=5, padx=10, sticky="nsew")
+                                   background=self.majorcolor, text='Размер сетки')
+        self.sizelabel.grid(row=5, column=0, columnspan=2, pady=5, padx=10, sticky="w")
 
         
-        
+
         # Первое поле для ввода
         self.entry1 = Entry(self.leftframe, justify=CENTER, width=10)
-        self.entry1.grid(row=6, column=0, padx=10, sticky="w")
+        self.entry1.grid(row=6, column=0, padx=10, sticky="e")
         self.entry1.insert(0, 'Ширина')
         self.entry1.configure(state='normal', fg="#b8b8b8")
         self.entrybind1_in = self.entry1.bind('<Button-1>', lambda x: self.on_focus_in(self.entry1))
         self.entrybind1_out = self.entry1.bind(
             '<FocusOut>', lambda x: self.on_focus_out(self.entry1, 'Ширина'))
 
-        self.minilabel = ttk.Label(self.leftframe, background=self.majorcolor, text='X')
+        self.minilabel = ttk.Label(self.leftframe, background=self.majorcolor, 
+                                   foreground=self.labelfgcolor, text='X')
         self.minilabel.grid(row=6, column=1)
         # Второе поле для ввода
         self.entry2 = Entry(self.leftframe, justify=CENTER, width=10)
@@ -116,8 +131,13 @@ class Main(Tk):
         self.leftframe.grid_columnconfigure(2, weight=3)
 
         self.check = False
-        self.checkbutton = Checkbutton(self.leftframe, background=self.majorcolor, command=self.check_change)
-        self.checkbutton.grid(row=6, column=3, pady=5, padx=10, sticky="nsew")
+        self.checkbutton = Checkbutton(self.leftframe, bg=self.majorcolor,
+                                activebackground=self.majorcolor, command=self.check_change)
+        self.checkbutton.grid(row=6, column=3, pady=5, padx=10, sticky='nsew')
+
+        # self.inverselabel = ttk.Label(self.leftframe, style="infolabel.TLabel", 
+        #                            background=self.majorcolor, text="- Инверсия")
+        # self.inverselabel.grid(row=7, column=2, columnspan=3, pady=5, padx=10, sticky="w")
 
         self.gridbutton = ttk.Button(self.leftframe, text='Построить сетку', 
                         command= lambda: self.make_crossword_grid(self.entry1.get(), self.entry2.get()))
@@ -137,9 +157,9 @@ class Main(Tk):
         self.generatorbutton.grid(row=9, column=0, columnspan=4, pady=10, padx=10, sticky="nsew")
         # self.leftframe.grid_rowconfigure(8, weight=1)
 
-        self.savebutton = ttk.Button(self.leftframe, text='Сохранить в\nPDF-файл',
-                                     command=lambda: self.notifiationlabel.config(text='Сетка отсутствует\nили она пуста',
-                                                                                  foreground='red',))
+        self.savebutton = ttk.Button(self.leftframe, text='Сохранить в\nPDF-файл', 
+                        command=lambda: self.notifiationlabel.config(
+                        text='Сетка отсутствует\nили она пуста', foreground='red'))
         self.savebutton.grid(row=10, column=0, columnspan=4, pady=10, padx=10, sticky="nsew")
         # self.leftframe.grid_rowconfigure(9, weight=1)
 
@@ -223,7 +243,7 @@ class Main(Tk):
         try:
             # выбор и открытие папки
             # self.folderpath = fd.askdirectory()
-            self.folderpath = 'c:/.My/Freelance/CrosswordArchitect/словари'
+            self.folderpath = 'c:/.My/Freelance/CrosswordArchitect'
             self.notifiationlabel.config(text=1*'\n', 
                             style="notificationlabel.TLabel", foreground='red')
             # Чтение данных и сохранение в массивы
@@ -279,7 +299,7 @@ class Main(Tk):
                 pass
             finally:
                 self.notifiationlabel.config(text='Словарь загружен\n', 
-                                style="notificationlabel.TLabel", foreground='green')
+                                style="notificationlabel.TLabel", foreground=self.approvecolor)
         else:
             self.shortest = '-'
             self.longest = '-'
@@ -287,7 +307,7 @@ class Main(Tk):
             self.notifiationlabel.config(text='Словари не выбраны\n', 
                             style="notificationlabel.TLabel", foreground='red')
         
-        self.infolabel.config(text=f'Общее кол-во слов: {len(self.wordsarray)}\nМин. длина слова: {self.shortest}\nМакс. длина слова: {self.longest}')
+        self.infolabel.config(text=f' Общее кол-во слов: {len(self.wordsarray)}\n Мин. длина слова: {self.shortest}\n Макс. длина слова: {self.longest}')
     # Создание сетки
     def make_crossword_grid(self, w, h):
         if w.isnumeric() and h.isnumeric():
@@ -309,11 +329,12 @@ class Main(Tk):
                         if not self.check:
                             tempobj = Entry(self.crosswordframe, justify=CENTER, font=f'{self.arial} {fontcoeff} bold', 
                                         relief='solid', width=2, state=NORMAL, validate="key", bg=self.cellcolor, 
-                                        validatecommand=self.char_check)
+                                        validatecommand=self.char_check, disabledbackground=self.disabledentrycolor)
                             self.enabledcell[i].append(1)
                         else:
                             tempobj = Entry(self.crosswordframe, justify=CENTER, font=f'{self.arial} {fontcoeff} bold', 
-                                        relief='solid', width=2, state=DISABLED, validate=None, validatecommand=None) 
+                                        relief='solid', width=2, state=DISABLED, validate=None, 
+                                        validatecommand=None, disabledbackground=self.disabledentrycolor) 
                             self.enabledcell[i].append(0)
                         tempobj.grid(row=i, column=j, sticky="nsew")
                         self.grid[i].append(tempobj)
@@ -339,7 +360,7 @@ class Main(Tk):
     
     # генерация кроссворда
     def generator(self):
-        self.notifiationlabel.config(text='\n', foreground=self.not_found_textcolor)
+        self.notifiationlabel.config(text='\n', foreground=self.deniedcolor)
 
         # алгоритм заполнения сетки
 
@@ -414,6 +435,47 @@ class Main(Tk):
                 rh = self.w-y
                 rv = self.h-x
                 
+                # горизонталь
+                for i in range(rh):
+                    symbol = self.grid[x][y+i].get()
+                    if hpause == 0 and symbol == '':
+                        if self.enabledcell[x][y+i] == 1 and y+i not in hgridindexes:
+                            hgridletters.append(symbol)
+                            hgridindexes.append(y+i)
+                            self.grid[x][y+i].config(bg=self.cellcolor)
+                        if self.enabledcell[x][y+i] == 2 and y+i not in hgridindexes:
+                            hgridindexes.append(y+i)
+                            hgridletters.append(symbol)
+                            self.grid[i][y+i].config(bg=self.fixedcellcolor)
+                        if (self.enabledcell[x][y+i] == 0 or y+i+1 == self.w) and len(hgridindexes)>0:
+                            if len(hgridindexes) >= self.shortest and len(hgridindexes) <= self.longest:
+                                pattern = ''
+                                hpause = len(hgridindexes)
+                                words_with_fixed_len = '\n'.join(self.dictionary[len(hgridindexes)])
+                                for letter in hgridletters:
+                                    if letter == '':
+                                        pattern += '.'
+                                    else:
+                                        pattern += letter
+                                pattern = re.compile(pattern)
+                                result = pattern.findall(words_with_fixed_len)
+                                try:
+                                    word = result[random.randint(0, len(result)-1)]
+                                    print('len', len(hgridindexes), pattern, word, '(h)')
+                                    for elem in hgridindexes:
+                                        self.grid[x][elem].insert(0, word[hgridindexes.index(elem)])
+                                        if self.enabledcell[x][elem] == 1:
+                                            self.grid[x][elem].config(bg=self.cellcolor)
+                                        else:
+                                            self.grid[x][elem].config(bg=self.fixedcellcolor)
+                                except:
+                                    pass
+                            
+                            hgridletters.clear()
+                            hgridindexes.clear()
+                            pattern = ''
+                            print(y, hpause)
+                # вертикаль
                 for i in range(rh):
                     symbol = self.grid[x][y+i].get()
                     if hpause == 0 and symbol == '':
@@ -455,14 +517,7 @@ class Main(Tk):
                             print(y, hpause)
 
                             
-                # if len(vgridindexes) < 1:
-                #     for j in range(rv):
-                #         if self.enabledcell[x+j][y] == 1:
-                #             self.grid[x+j][y].delete(0, END)
-                #             gridletters.append(self.grid[x+j][y].get())
-                #             vgridindexes.append(x+j)
-                    
-                # print(f'({x+1},{y+1}): h = {len(hgridindexes)}, v = {len(vgridindexes)}')
+                
 
             
 
@@ -487,7 +542,7 @@ class Main(Tk):
 if __name__ == "__main__":
     main = Main()
     main.geometry(f'{900}x{640}') # main.winfo_screenheight()
-    main.wm_geometry("+%d+%d" % (100, 50))
+    main.wm_geometry("+%d+%d" % (50, 10))
     main.title('CSV Convolution')
     main['bg'] = 'white'
     #main.attributes('-fullscreen', True)
