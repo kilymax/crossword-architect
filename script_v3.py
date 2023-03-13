@@ -30,7 +30,7 @@ class Main(Tk):
         # button colors
         self.buttonfgcolor = "black"
         self.buttoncolor = "#cfcfcf"
-        self.activebuttoncolor = "#ffe100"
+        self.activebuttoncolor = "#ffffff"
         # label colors
         self.labelfgcolor = "white"
         self.approvecolor = "#14cc00"
@@ -171,6 +171,7 @@ class Main(Tk):
         self.rightframe.grid_columnconfigure(0, weight=1)
         
     # === Служебные функции и обработчики событий =======================================
+    
     # entry изменения
     def on_focus_in(self, entry):
         if entry.cget('state') == 'normal':
@@ -215,21 +216,22 @@ class Main(Tk):
         if event.char in self.global_alphabet:
             entry.delete(0, END)
             if event.char in self.tatar_extension:
-                entry.insert(0, self.tatar_extension[event.char])
+                entry.insert(0, self.tatar_extension[event.char].upper())
             else:
                 entry.insert(0, event.char.upper())
             entry.config(validate="key", fg='black', bg=self.fixedcellcolor, 
                         validatecommand=self.char_check)
-            self.enabledcell[i][j] = '2'
+            self.enabledcell[i][j] = 'F'
     # функция расфиксации ячеек, заполненных вручную
     def unfixing_cell(self, event, entry, i, j):
-        if self.enabledcell[i][j] == '2':
+        if self.enabledcell[i][j] == 'F':
             entry.delete(0, END)
             entry.config(state=NORMAL, validate="key", fg='black', bg=self.cellcolor, 
                          validatecommand=self.char_check)
             self.enabledcell[i][j] = '1'
 
     # === Основные функции приложения ==================================================
+    
     # функция открытия директории
     def open_directory(self):
         try:
@@ -356,8 +358,14 @@ class Main(Tk):
     def clear_grid(self):
         for x in range(0, self.h):
             for y in range(0, self.w):
-                if self.enabledcell[x][y] != '0':
+                if self.enabledcell[x][y] not in ('0', 'F'):
                     self.grid[x][y].delete(0, END)
+    
+    # функция очистки enabledcell
+    def clear_enabledcell_list(self):
+        for x in range(0, self.h):
+            for y in range(0, self.w):
+                if self.enabledcell[x][y] not in ('0', 'F'):
                     self.enabledcell[x][y] = '1'
 
     # настройка паддингов для enabledcell
@@ -386,11 +394,12 @@ class Main(Tk):
                 for y in range(len(self.enabledcell[x])):
                     print(self.enabledcell[x][y].center(2), end=' ')
                 print()
-            
-        print('h_words:', self.h_words)
-        print('v_words:', self.v_words)
-
-        print('=== ======================= ===')
+            try:
+                print('h_words:', self.h_words)
+                print('v_words:', self.v_words)
+            except AttributeError:
+                pass
+            print('=== ======================= ===')
 
     # функция анализа сетки
     def analize_grid(self):
@@ -398,17 +407,18 @@ class Main(Tk):
         Aнализ 0 | 1 -> E, H, V, VH, vH, Vh, h, v, +
         Horizontal: H VH vH Vh h +
         Vertical: V VH vH Vh v +
-        Other: E
+        Other: E F
         """
         self.h_words = []
         self.v_words = []
-        h_signs = ('1', 'h', 'H', 'VH', 'Vh', 'vH', '+')
-        v_signs = ('1', 'v', 'V', 'VH', 'Vh', 'vH', '+')
+        self.fixed_words = []
+        self.h_signs = ('1', 'h', 'H', 'VH', 'Vh', 'vH', '+', 'F')
+        self.v_signs = ('1', 'v', 'V', 'VH', 'Vh', 'vH', '+', 'F')
         # горизонталь
         for x in range(1, len(self.enabledcell)-1):
             l = 0
             for y in range(1, len(self.enabledcell[x])-1):
-                if self.enabledcell[x][y] in h_signs:
+                if self.enabledcell[x][y] in self.h_signs:
                     upper = self.enabledcell[x-1][y]
                     lower = self.enabledcell[x+1][y]
                     left = self.enabledcell[x][y-1]
@@ -417,82 +427,96 @@ class Main(Tk):
                     # Empty 
                     if upper == '0' and lower == '0' and right == '0' and left == '0':
                         self.enabledcell[x][y] = 'E'
-                    if left == '0'  and right in h_signs:
+                    if left == '0'  and right in self.h_signs:
                         # Начало горизонтального
                         if upper == '0' and lower == '0':
                             self.enabledcell[x][y] = 'H'
                         # Начало горизонтального и вертикального Г
-                        if upper == '0' and lower in v_signs:
+                        if upper == '0' and lower in self.v_signs:
                             self.enabledcell[x][y] = 'VH'
                         # Начало горизонтального из буквы вертикального |-
-                        if upper in v_signs:
+                        if upper in self.v_signs:
                             self.enabledcell[x][y] = 'vH'
                         self.h_words.append([])
                         self.h_words[-1].append(x-1)
                         self.h_words[-1].append(y-1)
                         l += 1
-                    if left in h_signs:
+                    if left in self.h_signs:
                         # Начало вертикального из буквы горизонтального T
-                        if upper == '0' and lower in v_signs:
+                        if upper == '0' and lower in self.v_signs:
                             self.enabledcell[x][y] = 'Vh'
                         # Продолжение горизонтального --
                         if upper == '0' and lower == '0':
                             self.enabledcell[x][y] = 'h'
                         # Пересечение слов в любом месте
-                        if upper in v_signs:
+                        if upper in self.v_signs:
                             self.enabledcell[x][y] = '+'
                         l += 1
                         if right == '0':
                             self.h_words[-1].append(l)
                             self.h_words[-1].append('h')
                             l = 0
-                        
-                    
+
         # вертикаль
         for y in range(1, len(self.enabledcell[0])-1):
             l = 0
             for x in range(1, len(self.enabledcell)-1):
-                if self.enabledcell[x][y] in v_signs:
+                if self.enabledcell[x][y] in self.v_signs:
                     upper = self.enabledcell[x-1][y]
                     lower = self.enabledcell[x+1][y]
                     left = self.enabledcell[x][y-1]
                     right = self.enabledcell[x][y+1]
                     
-                    if upper == '0' and lower in v_signs:
+                    if upper == '0' and lower in self.v_signs:
                         # Начало вертикального
                         if right == '0' and left == '0':
                             self.enabledcell[x][y] = 'V'
                         # Начало горизонтального и вертикального Г
-                        if right in h_signs and left == '0':
+                        if right in self.h_signs and left == '0':
                             self.enabledcell[x][y] = 'VH'
                         # Начало вертикального из буквы горизонтального T
-                        if left in h_signs:
+                        if left in self.h_signs:
                             self.enabledcell[x][y] = 'Vh'
                         self.v_words.append([])
                         self.v_words[-1].append(x-1)
                         self.v_words[-1].append(y-1)
                         l += 1
-                    if upper in v_signs:
+                    if upper in self.v_signs:
                         # Начало горизонтального из буквы вертикального |-
-                        if right in h_signs and left == '0':
+                        if right in self.h_signs and left == '0':
                             self.enabledcell[x][y] = 'vH'
                         # Продолжение вертикального |
                         if right == '0' and left == '0':
                             self.enabledcell[x][y] = 'v'
                         # Пересечение слов в любом месте
-                        if left in h_signs:
+                        if left in self.h_signs:
                             self.enabledcell[x][y] = '+'
                         l += 1
-                        print('vertigo na huigo', l, x-1, y-1)
                         if lower == '0':
                             self.v_words[-1].append(l)
                             self.v_words[-1].append('v')
                             l = 0
 
+    # сортировка слов от большего к меньшему
+    def words_sorting(self, wordlist):
+        wordlist.sort(key = lambda x: x[2])
+
+    # установка ограничения на итерации
+    def set_interation_limit(self, limit):
+        if limit.isnumeric():
+            limit = int(limit)
+            if limit > 0 and limit <= 10000:
+                return limit
+            else:
+                return 100
+        else:
+            return 100
+    
     # рандомайзер слов и заполнитель сетки
     def word_randomizer(self, X, Y, length, position):
         pattern = ''
         words_with_fixed_len = '\n'.join(self.dictionary[length])
+        wrong_letters = ('ь', 'ъ')
         for l in range(length):
             if position in ('h','H'):
                 char = self.grid[X][Y+l].get()
@@ -513,36 +537,71 @@ class Main(Tk):
             for l in range(length):
                 if position in ('h','H'):
                     self.grid[X][Y+l].insert(0, word[l])
-                    if self.enabledcell[X][Y+l] == '1':
+                    if self.enabledcell[X][Y+l] in self.h_signs:
                         self.grid[X][Y+l].config(bg=self.cellcolor)
-                    if self.enabledcell[X][Y+l] == '2':
+                    if self.enabledcell[X][Y+l] == 'F':
                         self.grid[X][Y+l].config(bg=self.fixedcellcolor)
                 if position in ('v','V'):
                     self.grid[X+l][Y].insert(0, word[l])
-                    if self.enabledcell[X+l][Y] == '1':
+                    if self.enabledcell[X+l][Y] in self.v_signs:
                         self.grid[X+l][Y].config(bg=self.cellcolor)
-                    if self.enabledcell[X+l][Y] == '2':
+                    if self.enabledcell[X+l][Y] == 'F':
                         self.grid[X+l][Y].config(bg=self.fixedcellcolor)
             print('len', length, pattern, word, position)
         except:
-            print('Huinya vishla')
+            self.stop = False
+            self.empty += 1
+            for l in range(length):
+                if position in ('h','H'):
+                    if self.enabledcell[X][Y+l] in self.h_signs:
+                        self.grid[X][Y+l].config(bg=self.deniedcolor)
+                    if self.enabledcell[X][Y+l] == 'F':
+                        self.grid[X][Y+l].config(bg=self.fixedcellcolor)
+                if position in ('v','V'):
+                    if self.enabledcell[X+l][Y] in self.v_signs:
+                        self.grid[X+l][Y].config(bg=self.deniedcolor)
+                    if self.enabledcell[X+l][Y] == 'F':
+                        self.grid[X+l][Y].config(bg=self.fixedcellcolor)
 
     # генерация кроссворда
     def generator(self):
         self.notifiationlabel.config(text='\n', foreground=self.deniedcolor)
 
-        self.clear_grid()
+        self.clear_enabledcell_list()
+        self.analize_results(turn='off') # on/off
         
         self.padding_set('set')
 
         self.analize_grid()
         
         self.padding_set('del')
-        self.analize_results(turn='on') # on/off
-
-        
-                
-
+        self.analize_results(turn='off') # on/off
+        # сортировка по убыванию длины
+        self.all_words = self.h_words + self.v_words
+        self.all_words.sort(key = lambda x: x[2], reverse=True)
+        # настройка количества итераций
+        iteration = 1
+        self.stop = False
+        iteration_limit = self.set_interation_limit(self.entry3.get())
+        # алгоритм генерации и заполнения слов
+        self.min_empty_count = 10
+        best_iteration_count = 0
+        while not self.stop and iteration <= iteration_limit:
+            self.clear_grid()
+            self.empty = 0
+            self.stop = True
+            print(f'=== Итерация #{iteration} ===')
+            for word in (self.all_words):
+                self.word_randomizer(word[0], word[1], word[2], word[3])
+            if self.empty <= self.min_empty_count:
+                if self.min_empty_count == self.empty:
+                    best_iteration_count += 1
+                else:
+                    best_iteration_count = 1
+                    self.min_empty_count = self.empty
+            iteration += 1
+        print(f'Проведено итераций: {iteration-1}')
+        print(f'Наилучших попыток {best_iteration_count} с количеством пропусков: {self.min_empty_count} слов')
             
 
     # Сохранение в pdf файл
