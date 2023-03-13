@@ -361,162 +361,135 @@ class Main(Tk):
     # генерация кроссворда
     def generator(self):
         self.notifiationlabel.config(text='\n', foreground=self.deniedcolor)
+        self.check = 1
 
-        # алгоритм заполнения сетки
+        # проверка валидности лимитирующего значения для количества итераций
+        iteration = 1
+        iteration_limit = self.entry3.get()
+        if iteration_limit.isnumeric():
+            iteration_limit = int(iteration_limit)
+            if iteration_limit > 0 and iteration_limit <= 10000:
+                iteration_limit = iteration_limit
+            else:
+                iteration_limit = 100
+        else:
+            iteration_limit = 100
 
-        # for i in range(self.h):
-        #     print(self.enabledcell[i])
-        #     gridindexes = []
-        #     gridletters = []
-        #     full_word_is_fixed = 0
-        #     for j in range(self.w):
-        #         if self.enabledcell[i][j] == 1:
-        #             gridindexes.append(j)
-        #             self.grid[i][j].delete(0, END)
-        #             gridletters.append(self.grid[i][j].get())
-        #             full_word_is_fixed = 0
-        #             self.grid[i][j].config(bg=self.cellcolor)
-        #         if self.enabledcell[i][j] == 2:
-        #             gridindexes.append(j)
-        #             gridletters.append(self.grid[i][j].get())
-        #             full_word_is_fixed += 1
-        #             self.grid[i][j].config(bg=self.fixedcellcolor)
+        while self.check>0 and iteration <= iteration_limit:
+            self.check = 0
+            iteration += 1
+            # очистка сетки
+            for x in range(self.h):
+                for y in range(self.w):
+                    if self.enabledcell[x][y] == 1:
+                        self.grid[x][y].delete(0, END)
 
-        #         if (self.enabledcell[i][j] == 0 or j+1 == len(self.enabledcell[i])) and len(gridindexes)>0:
-        #             if len(gridindexes) >= self.shortest and len(gridindexes) <= self.longest:
-        #                 pattern = ''
-        #                 words_with_fixed_len = '\n'.join(self.dictionary[len(gridindexes)])
-        #                 for letter in gridletters:
-        #                     if letter == '':
-        #                         pattern += '.'
-        #                     else:
-        #                         pattern += letter
-        #                 pattern = re.compile(pattern)
-        #                 result = pattern.findall(words_with_fixed_len)
-        #                 try:
-        #                     word = result[random.randint(0, len(result)-1)]
-        #                     # print('len', len(gridindexes), pattern, word, '(h)')
-        #                     for elem in gridindexes:
-        #                         self.grid[i][elem].insert(0, word[gridindexes.index(elem)])
-        #                         if self.enabledcell[i][elem] == 1:
-        #                             self.grid[i][elem].config(bg=self.cellcolor)
-        #                         else:
-        #                             self.grid[i][elem].config(bg=self.fixedcellcolor)
-        #                 except:
-        #                     if full_word_is_fixed != len(gridindexes):
-        #                         for elem in gridindexes:
-        #                             self.grid[i][elem].config(bg=self.not_found_textcolor)
-        #             else:
-        #                 self.grid[i][j].delete(0, END)
-        #             gridindexes.clear()
-        #             gridletters.clear()
-        #             pattern = ''
-
-        # очистка сетки
-        for x in range(self.h):
-            for y in range(self.w):
-                if self.enabledcell[x][y] == 1:
-                    self.grid[x][y].delete(0, END)
-
-        print('='*10)
-        vgridindexes = []
-        vgridletters = []
-        vpause = 0
-        for x in range(self.h):
-            hpause = 0
-            hgridindexes = []
-            hgridletters = []
-            pattern = ''
-            if vpause > 0:
-                vpause -= 1
-            for y in range(self.w):
-                if hpause > 0:
-                    hpause -= 1
-                rh = self.w-y
-                rv = self.h-x
+            print('='*20)
+            vgridindexes = []
+            vgridletters = []
+            vpause = 0
+            for x in range(self.h):
+                hpause = 0
+                hgridindexes = []
+                hgridletters = []
+                pattern = ''
                 
-                # горизонталь
-                for i in range(rh):
-                    symbol = self.grid[x][y+i].get()
-                    if hpause == 0 and symbol == '':
-                        if self.enabledcell[x][y+i] == 1 and y+i not in hgridindexes:
-                            hgridletters.append(symbol)
-                            hgridindexes.append(y+i)
-                            self.grid[x][y+i].config(bg=self.cellcolor)
-                        if self.enabledcell[x][y+i] == 2 and y+i not in hgridindexes:
-                            hgridindexes.append(y+i)
-                            hgridletters.append(symbol)
-                            self.grid[i][y+i].config(bg=self.fixedcellcolor)
-                        if (self.enabledcell[x][y+i] == 0 or y+i+1 == self.w) and len(hgridindexes)>0:
-                            if len(hgridindexes) >= self.shortest and len(hgridindexes) <= self.longest:
-                                pattern = ''
-                                hpause = len(hgridindexes)
-                                words_with_fixed_len = '\n'.join(self.dictionary[len(hgridindexes)])
-                                for letter in hgridletters:
-                                    if letter == '':
-                                        pattern += '.'
-                                    else:
-                                        pattern += letter
-                                pattern = re.compile(pattern)
-                                result = pattern.findall(words_with_fixed_len)
-                                try:
-                                    word = result[random.randint(0, len(result)-1)]
-                                    print('len', len(hgridindexes), pattern, word, '(h)')
-                                    for elem in hgridindexes:
-                                        self.grid[x][elem].insert(0, word[hgridindexes.index(elem)])
-                                        if self.enabledcell[x][elem] == 1:
-                                            self.grid[x][elem].config(bg=self.cellcolor)
+                for y in range(self.w):
+                    # if vpause > 0:
+                    #     vpause -= 1
+                    # if hpause > 0:
+                    #     hpause -= 1
+                    hpause = 0
+                    vpause = 0
+                    rh = self.w-y
+                    rv = self.h-x
+                    
+                    # горизонталь
+                    if hpause == 0:
+                        for i in range(rh):
+                            symbol = self.grid[x][y+i].get()
+                            if self.enabledcell[x][y+i] == 1 and y+i not in hgridindexes:
+                                hgridletters.append(symbol)
+                                hgridindexes.append(y+i)
+                                self.grid[x][y+i].config(bg=self.cellcolor)
+                            if self.enabledcell[x][y+i] == 2 and y+i not in hgridindexes:
+                                hgridindexes.append(y+i)
+                                hgridletters.append(symbol)
+                                self.grid[i][y+i].config(bg=self.fixedcellcolor)
+                            if (self.enabledcell[x][y+i] == 0 or y+i+1 == self.w) and len(hgridindexes)>0:
+                                if len(hgridindexes) >= self.shortest and len(hgridindexes) <= self.longest and '' in hgridletters:
+                                    pattern = ''
+                                    hpause = len(hgridindexes)
+                                    words_with_fixed_len = '\n'.join(self.dictionary[len(hgridindexes)])
+                                    for letter in hgridletters:
+                                        if letter == '':
+                                            pattern += '.'
                                         else:
-                                            self.grid[x][elem].config(bg=self.fixedcellcolor)
-                                except:
-                                    pass
-                            
-                            hgridletters.clear()
-                            hgridindexes.clear()
-                            pattern = ''
-                            print(y, hpause)
-                # вертикаль
-                for i in range(rh):
-                    symbol = self.grid[x][y+i].get()
-                    if hpause == 0 and symbol == '':
-                        if self.enabledcell[x][y+i] == 1 and y+i not in hgridindexes:
-                            hgridletters.append(symbol)
-                            hgridindexes.append(y+i)
-                            self.grid[x][y+i].config(bg=self.cellcolor)
-                        if self.enabledcell[x][y+i] == 2 and y+i not in hgridindexes:
-                            hgridindexes.append(y+i)
-                            hgridletters.append(symbol)
-                            self.grid[i][y+i].config(bg=self.fixedcellcolor)
-                        if (self.enabledcell[x][y+i] == 0 or y+i+1 == self.w) and len(hgridindexes)>0:
-                            if len(hgridindexes) >= self.shortest and len(hgridindexes) <= self.longest:
-                                pattern = ''
-                                hpause = len(hgridindexes)
-                                words_with_fixed_len = '\n'.join(self.dictionary[len(hgridindexes)])
-                                for letter in hgridletters:
-                                    if letter == '':
-                                        pattern += '.'
-                                    else:
-                                        pattern += letter
-                                pattern = re.compile(pattern)
-                                result = pattern.findall(words_with_fixed_len)
-                                try:
-                                    word = result[random.randint(0, len(result)-1)]
-                                    print('len', len(hgridindexes), pattern, word, '(h)')
-                                    for elem in hgridindexes:
-                                        self.grid[x][elem].insert(0, word[hgridindexes.index(elem)])
-                                        if self.enabledcell[x][elem] == 1:
-                                            self.grid[x][elem].config(bg=self.cellcolor)
+                                            pattern += letter
+                                    pattern = re.compile(pattern)
+                                    result = pattern.findall(words_with_fixed_len)
+                                    try:
+                                        word = result[random.randint(0, len(result)-1)]
+                                        print('len', len(hgridindexes), pattern, word, '(h)')
+                                        for elem in hgridindexes:
+                                            self.grid[x][elem].insert(0, word[hgridindexes.index(elem)])
+                                            if self.enabledcell[x][elem] == 1:
+                                                self.grid[x][elem].config(bg=self.cellcolor)
+                                            else:
+                                                self.grid[x][elem].config(bg=self.fixedcellcolor)
+                                    except:
+                                        for elem in hgridindexes:
+                                            pass
+                                            # self.grid[x][elem].config(bg=self.deniedcolor)
+                                
+                                hgridletters.clear()
+                                hgridindexes.clear()
+                    
+                    # вертикаль
+                    if vpause == 0:
+                        for i in range(rv):
+                            symbol = self.grid[x+i][y].get()
+                            if self.enabledcell[x+i][y] == 1 and x+i not in vgridindexes:
+                                vgridletters.append(symbol)
+                                vgridindexes.append(x+i)
+                                self.grid[x+i][y].config(bg=self.cellcolor)
+                            if self.enabledcell[x+i][y] == 2 and x+i not in vgridindexes:
+                                vgridletters.append(symbol)
+                                vgridindexes.append(x+i)
+                                self.grid[x+i][y].config(bg=self.fixedcellcolor)
+                            if (self.enabledcell[x+i][y] == 0 or x+i+1 == self.h) and len(vgridindexes)>0:
+                                if len(vgridindexes) >= self.shortest and len(vgridindexes) <= self.longest and '' in vgridletters:
+                                    pattern = ''
+                                    vpause = len(vgridindexes)
+                                    words_with_fixed_len = '\n'.join(self.dictionary[len(vgridindexes)])
+                                    for letter in vgridletters:
+                                        if letter == '':
+                                            pattern += '.'
                                         else:
-                                            self.grid[x][elem].config(bg=self.fixedcellcolor)
-                                except:
-                                    pass
-                            
-                            hgridletters.clear()
-                            hgridindexes.clear()
-                            pattern = ''
-                            print(y, hpause)
+                                            pattern += letter
+                                    pattern = re.compile(pattern)
+                                    result = pattern.findall(words_with_fixed_len)
+                                    try:
+                                        word = result[random.randint(0, len(result)-1)]
+                                        print('len', len(vgridindexes), pattern, word, '(v)')
+                                        for elem in vgridindexes:
+                                            self.grid[elem][y].insert(0, word[vgridindexes.index(elem)])
+                                            if self.enabledcell[elem][y] == 1:
+                                                self.grid[elem][y].config(bg=self.cellcolor)
+                                            else:
+                                                self.grid[elem][y].config(bg=self.fixedcellcolor)
+                                    except:
+                                        for elem in vgridindexes:
+                                            pass
+                                            # self.grid[elem][y].config(bg=self.deniedcolor)
+                                
+                                vgridletters.clear()
+                                vgridindexes.clear()
 
-                            
+                if self.grid[x][y].get() == '':
+                    self.check += 1
+    
+        print(self.check)          
                 
 
             
