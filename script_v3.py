@@ -2,11 +2,12 @@
 import os
 import re
 import random
+import time
 
 from tkinter import *
 from tkinter import filedialog as fd
 from tkinter import ttk
-from sys import getdefaultencoding
+from tkinter import messagebox
 
 from PIL import ImageGrab, ImageEnhance
 
@@ -17,7 +18,6 @@ class Main(Tk):
     def __init__(self):
         super().__init__()
 
-        getdefaultencoding()
         self.arial = 'Arial'
         self.font16 = 'Arial 16 bold'
         self.font13 = 'Arial 13 bold'
@@ -35,6 +35,7 @@ class Main(Tk):
         self.labelfgcolor = "white"
         self.approvecolor = "#14cc00"
         self.deniedcolor = "red"
+        self.waitcolor = "#ffe600"
         #entry colors
         self.disabledentrycolor = "#242424"
         self.cellcolor = "#91bbff"
@@ -417,6 +418,7 @@ class Main(Tk):
         # горизонталь
         for x in range(1, len(self.enabledcell)-1):
             l = 0
+            intersection = 0
             for y in range(1, len(self.enabledcell[x])-1):
                 if self.enabledcell[x][y] in self.h_signs:
                     upper = self.enabledcell[x-1][y]
@@ -434,9 +436,11 @@ class Main(Tk):
                         # Начало горизонтального и вертикального Г
                         if upper == '0' and lower in self.v_signs:
                             self.enabledcell[x][y] = 'VH'
+                            intersection += 1
                         # Начало горизонтального из буквы вертикального |-
                         if upper in self.v_signs:
                             self.enabledcell[x][y] = 'vH'
+                            intersection += 1
                         self.h_words.append([])
                         self.h_words[-1].append(x-1)
                         self.h_words[-1].append(y-1)
@@ -445,21 +449,26 @@ class Main(Tk):
                         # Начало вертикального из буквы горизонтального T
                         if upper == '0' and lower in self.v_signs:
                             self.enabledcell[x][y] = 'Vh'
+                            intersection += 1
                         # Продолжение горизонтального --
                         if upper == '0' and lower == '0':
                             self.enabledcell[x][y] = 'h'
                         # Пересечение слов в любом месте
                         if upper in self.v_signs:
                             self.enabledcell[x][y] = '+'
+                            intersection += 1
                         l += 1
                         if right == '0':
+                            self.h_words[-1].append(intersection)
                             self.h_words[-1].append(l)
                             self.h_words[-1].append('h')
                             l = 0
+                            intersection = 0
 
         # вертикаль
         for y in range(1, len(self.enabledcell[0])-1):
             l = 0
+            intersection = 0
             for x in range(1, len(self.enabledcell)-1):
                 if self.enabledcell[x][y] in self.v_signs:
                     upper = self.enabledcell[x-1][y]
@@ -474,9 +483,11 @@ class Main(Tk):
                         # Начало горизонтального и вертикального Г
                         if right in self.h_signs and left == '0':
                             self.enabledcell[x][y] = 'VH'
+                            intersection += 1
                         # Начало вертикального из буквы горизонтального T
                         if left in self.h_signs:
                             self.enabledcell[x][y] = 'Vh'
+                            intersection += 1
                         self.v_words.append([])
                         self.v_words[-1].append(x-1)
                         self.v_words[-1].append(y-1)
@@ -485,21 +496,21 @@ class Main(Tk):
                         # Начало горизонтального из буквы вертикального |-
                         if right in self.h_signs and left == '0':
                             self.enabledcell[x][y] = 'vH'
+                            intersection += 1
                         # Продолжение вертикального |
                         if right == '0' and left == '0':
                             self.enabledcell[x][y] = 'v'
                         # Пересечение слов в любом месте
                         if left in self.h_signs:
                             self.enabledcell[x][y] = '+'
+                            intersection += 1
                         l += 1
                         if lower == '0':
+                            self.v_words[-1].append(intersection)
                             self.v_words[-1].append(l)
                             self.v_words[-1].append('v')
                             l = 0
-
-    # сортировка слов от большего к меньшему
-    def words_sorting(self, wordlist):
-        wordlist.sort(key = lambda x: x[2])
+                            intersection = 0
 
     # установка ограничения на итерации
     def set_interation_limit(self, limit):
@@ -513,7 +524,7 @@ class Main(Tk):
             return 100
     
     # рандомайзер слов и заполнитель сетки
-    def word_randomizer(self, X, Y, length, position):
+    def word_randomizer(self, X, Y, length, position, show=True):
         pattern = ''
         words_with_fixed_len = '\n'.join(self.dictionary[length])
         wrong_letters = ('ь', 'ъ')
@@ -547,7 +558,8 @@ class Main(Tk):
                         self.grid[X+l][Y].config(bg=self.cellcolor)
                     if self.enabledcell[X+l][Y] == 'F':
                         self.grid[X+l][Y].config(bg=self.fixedcellcolor)
-            print('len', length, pattern, word, position)
+            if show:
+                print('len', length, pattern, word, position)
         except:
             self.stop = False
             self.empty += 1
@@ -565,34 +577,36 @@ class Main(Tk):
 
     # генерация кроссворда
     def generator(self):
-        self.notifiationlabel.config(text='\n', foreground=self.deniedcolor)
-
+        self.notifiationlabel.config(text='Ожидание...\n', foreground=self.waitcolor)
         self.clear_enabledcell_list()
-        self.analize_results(turn='off') # on/off
-        
-        self.padding_set('set')
 
+        # анализ сетки
+        self.analize_results(turn='off') # on/off
+        self.padding_set('set')
         self.analize_grid()
-        
         self.padding_set('del')
         self.analize_results(turn='off') # on/off
+
         # сортировка по убыванию длины
         self.all_words = self.h_words + self.v_words
         self.all_words.sort(key = lambda x: x[2], reverse=True)
+        
         # настройка количества итераций
         iteration = 1
         self.stop = False
         iteration_limit = self.set_interation_limit(self.entry3.get())
+        
         # алгоритм генерации и заполнения слов
         self.min_empty_count = 10
         best_iteration_count = 0
+        start_time = time.time()
         while not self.stop and iteration <= iteration_limit:
             self.clear_grid()
             self.empty = 0
             self.stop = True
             print(f'=== Итерация #{iteration} ===')
             for word in (self.all_words):
-                self.word_randomizer(word[0], word[1], word[2], word[3])
+                self.word_randomizer(word[0], word[1], word[3], word[4], False)
             if self.empty <= self.min_empty_count:
                 if self.min_empty_count == self.empty:
                     best_iteration_count += 1
@@ -600,8 +614,15 @@ class Main(Tk):
                     best_iteration_count = 1
                     self.min_empty_count = self.empty
             iteration += 1
-        print(f'Проведено итераций: {iteration-1}')
-        print(f'Наилучших попыток {best_iteration_count} с количеством пропусков: {self.min_empty_count} слов')
+
+        finish_time = time.time() - start_time
+        self.notifiationlabel.config(text='\n')
+        if self.min_empty_count == 0:
+            messagebox.showinfo(title="Успешно!", 
+                message=f'Проведено {iteration-1} итераций(-ия) ({int(finish_time//60)} мин {round(finish_time%60, 1)} сек)')
+        else:
+            messagebox.showinfo(title="Кроссворд не был заполнен", 
+                message=f'Проведено {iteration-1} итераций(-ия) ({int(finish_time//60)} мин {round(finish_time%60, 1)} сек)\nНаилучших попыток {best_iteration_count} с количеством пропусков: {self.min_empty_count} слов')
             
 
     # Сохранение в pdf файл
