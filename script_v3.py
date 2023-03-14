@@ -146,11 +146,11 @@ class Main(Tk):
 
         self.entry3 = Entry(self.leftframe, justify=CENTER, width=25)
         self.entry3.grid(row=8, column=0, padx=10, columnspan=4)
-        self.entry3.insert(0, 'Кол-во итераций (def 100)')
+        self.entry3.insert(0, 'Кол-во итераций (def 1000)')
         self.entry3.configure(state='normal', fg="#b8b8b8")
         self.entrybind3_in = self.entry3.bind('<Button-1>', lambda x: self.on_focus_in(self.entry3))
         self.entrybind3_out = self.entry3.bind(
-            '<FocusOut>', lambda x: self.on_focus_out(self.entry3, 'Кол-во итераций (def 100)'))
+            '<FocusOut>', lambda x: self.on_focus_out(self.entry3, 'Кол-во итераций (def 1000)'))
 
         self.generatorbutton = ttk.Button(self.leftframe, text='Сгенерировать\nкроссворд', 
                                           command=lambda: self.notifiationlabel.config(text='Словарь не загружен\nили не построена сетка', 
@@ -307,7 +307,7 @@ class Main(Tk):
     
     # функция создания сетки
     def make_crossword_grid(self, w, h):
-        if w.isnumeric() and h.isnumeric():
+        if w.isdigit() and h.isdigit():
             try:
                 for widget in self.crosswordframe.winfo_children():
                     widget.destroy()
@@ -514,20 +514,21 @@ class Main(Tk):
 
     # установка ограничения на итерации
     def set_interation_limit(self, limit):
-        if limit.isnumeric():
+        if limit.isdigit():
             limit = int(limit)
-            if limit > 0 and limit <= 10000:
-                return limit
+            if limit < 0:
+                return 1
+            elif limit > 10000:
+                return 10000
             else:
-                return 100
+                return limit
         else:
-            return 100
-    
+            return 1000
+        
     # рандомайзер слов и заполнитель сетки
     def word_randomizer(self, X, Y, length, position, show=True):
         pattern = ''
         words_with_fixed_len = '\n'.join(self.dictionary[length])
-        wrong_letters = ('ь', 'ъ')
         for l in range(length):
             if position in ('h','H'):
                 char = self.grid[X][Y+l].get()
@@ -544,7 +545,22 @@ class Main(Tk):
         pattern = re.compile(pattern)
         result = pattern.findall(words_with_fixed_len)
         try:
-            word = result[random.randint(0, len(result)-1)]
+            is_not_okay = True
+            while is_not_okay:
+                is_not_okay = False
+                word = result[random.randint(0, len(result)-1)]
+                if 'ь' in word or 'ъ' in word:
+                    if position in ('h','H'):
+                        for l in range(length):
+                            if word[l] in self.wrong_letters and self.enabledcell[X][Y+l] == 'Vh':
+                                is_not_okay = True
+                                break
+                    if position in ('v','V'):
+                        for l in range(length):
+                            if word[l] in self.wrong_letters and self.enabledcell[X+l][Y] == 'vH':
+                                is_not_okay = True
+                                break
+               
             for l in range(length):
                 if position in ('h','H'):
                     self.grid[X][Y+l].insert(0, word[l])
@@ -587,10 +603,11 @@ class Main(Tk):
         self.padding_set('del')
         self.analize_results(turn='off') # on/off
 
-        # сортировка по убыванию длины
+        # сортировка по убыванию в первую очередь по кол-ву пересечений, во вторую - по длине 
         self.all_words = self.h_words + self.v_words
+        self.all_words.sort(key = lambda x: x[3], reverse=True)
         self.all_words.sort(key = lambda x: x[2], reverse=True)
-        
+
         # настройка количества итераций
         iteration = 1
         self.stop = False
@@ -600,6 +617,7 @@ class Main(Tk):
         self.min_empty_count = 10
         best_iteration_count = 0
         start_time = time.time()
+        self.wrong_letters = ('ь', 'ъ')
         while not self.stop and iteration <= iteration_limit:
             self.clear_grid()
             self.empty = 0
@@ -618,12 +636,20 @@ class Main(Tk):
         finish_time = time.time() - start_time
         self.notifiationlabel.config(text='\n')
         if self.min_empty_count == 0:
-            messagebox.showinfo(title="Успешно!", 
-                message=f'Проведено {iteration-1} итераций(-ия) ({int(finish_time//60)} мин {round(finish_time%60, 1)} сек)')
+            messagebox.showinfo(title="Кроссворд успешно сгенерирован!", 
+                message=f'Проведено итераций — {iteration-1}/{iteration_limit} '
+                        f'({int(finish_time//60)} мин {round(finish_time%60, 1)} сек)\n'
+                        f'Всего слов — {len(self.all_words)} '
+                        f'({len(self.h_words)} горизонтальных, {len(self.v_words)} вертикальных)')
         else:
-            messagebox.showinfo(title="Кроссворд не был заполнен", 
-                message=f'Проведено {iteration-1} итераций(-ия) ({int(finish_time//60)} мин {round(finish_time%60, 1)} сек)\nНаилучших попыток {best_iteration_count} с количеством пропусков: {self.min_empty_count} слов')
-            
+            answer = messagebox.askokcancel(title="Кроссворд не был заполнен :(", 
+                message=f'Проведено итераций — {iteration-1}/{iteration_limit} '
+                        f'({int(finish_time//60)} мин {round(finish_time%60, 1)} сек)\n'
+                        f'Наилучших попыток {best_iteration_count} '
+                        f'с количеством пропусков — {self.min_empty_count} слов\n\n'
+                        f'Желаете попробовать снова? (OK)')
+            if answer:
+                self.generator()
 
     # Сохранение в pdf файл
     def save_in_file(self):
