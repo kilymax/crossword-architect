@@ -4,13 +4,13 @@ import re
 import random
 import time
 
+from fpdf import FPDF
 from tkinter import *
 from tkinter import filedialog as fd
 from tkinter import ttk
 from tkinter import messagebox
 
 from PIL import ImageGrab, ImageEnhance
-
 
 
 class Main(Tk):
@@ -26,7 +26,7 @@ class Main(Tk):
         # main color scheme
         self.majorcolor = "#0e00a3"
         self.minorcolor = "#060080"
-        self.rightframecolor = "#d9d9d9"
+        self.rightframecolor = "white"
         # button colors
         self.buttonfgcolor = "black"
         self.buttoncolor = "#cfcfcf"
@@ -58,7 +58,6 @@ class Main(Tk):
 
         self.char_check = (self.register(self.char_valid), "%P")
 
-
         # Стили виджетов ttk
         buttonstyle = ttk.Style()
         buttonstyle.theme_use('alt')
@@ -89,28 +88,31 @@ class Main(Tk):
         self.opendirectorybutton.grid(row=0, column=0, columnspan=4, pady=10, padx=10, sticky="nsew")
         
         self.dictlistbox = Listbox(self.leftframe, border=3, selectmode=MULTIPLE, height=5, font=self.font10)
-        self.dictlistbox.grid(row=1, column=0, columnspan=4, pady=10, padx=10, ipadx=5, ipady=5, sticky="nsew")
+        self.dictlistbox.grid(row=1, column=0, columnspan=4, pady=0, padx=10, ipadx=5, ipady=5, sticky="nsew")
 
         self.infolabel = ttk.Label(self.leftframe, style="infolabel.TLabel", text=2*'\n')
-        self.infolabel.grid(row=2, column=0, columnspan=4, pady=10, padx=10, sticky="nsew")
+        self.infolabel.grid(row=2, column=0, columnspan=4, pady=0, padx=10, sticky="nsew")
 
         self.selectdictbutton = ttk.Button(self.leftframe, text='Загрузить словари',
-                                    command=lambda: self.notifiationlabel.config(text='Директория со\nсловарями не выбрана!', 
+                                    command=lambda: self.notifiationlabel.config(
+                                        text='Директория со\nсловарями не выбрана!', 
                                     style="notificationlabel.TLabel", foreground='red'))
         self.selectdictbutton.grid(row=3, column=0, columnspan=4, pady=10, padx=10, sticky="nsew")
 
         self.notifiationlabel = ttk.Label(self.leftframe, style="notificationlabel.TLabel", text=1*'\n')
-        self.notifiationlabel.grid(row=4, column=0, columnspan=4, pady=10, padx=10, sticky="nsew")
+        self.notifiationlabel.grid(row=4, column=0, columnspan=4, pady=0, padx=10, sticky="nsew")
+        
+        self.hintlabel = ttk.Label(self.leftframe, font=self.font8, foreground="yellow", 
+                                background=self.majorcolor, text="1: Ә     2: Җ     3: Ң     4: Ө     5: Ү     6: Һ\n")
+        self.hintlabel.grid(row=5, column=0, columnspan=4, pady=0, padx=10, sticky="nsew")
 
         self.sizelabel = ttk.Label(self.leftframe, style="infolabel.TLabel", 
-                                   background=self.majorcolor, text='Размер сетки')
-        self.sizelabel.grid(row=5, column=0, columnspan=2, pady=5, padx=10, sticky="w")
-
-        
+                                   background=self.majorcolor, text='Размер сетки:')
+        self.sizelabel.grid(row=6, column=0, columnspan=4, pady=0, padx=10, sticky="w")
 
         # Первое поле для ввода
         self.entry1 = Entry(self.leftframe, justify=CENTER, width=10)
-        self.entry1.grid(row=6, column=0, padx=10, sticky="e")
+        self.entry1.grid(row=7, column=0, padx=5, sticky="e")
         self.entry1.insert(0, 'Ширина')
         self.entry1.configure(state='normal', fg="#b8b8b8")
         self.entrybind1_in = self.entry1.bind('<Button-1>', lambda x: self.on_focus_in(self.entry1))
@@ -119,10 +121,10 @@ class Main(Tk):
 
         self.minilabel = ttk.Label(self.leftframe, background=self.majorcolor, 
                                    foreground=self.labelfgcolor, text='X')
-        self.minilabel.grid(row=6, column=1)
+        self.minilabel.grid(row=7, column=1)
         # Второе поле для ввода
         self.entry2 = Entry(self.leftframe, justify=CENTER, width=10)
-        self.entry2.grid(row=6, column=2, padx=10, sticky="w")
+        self.entry2.grid(row=7, column=2, padx=5, sticky="w")
         self.entry2.insert(0, 'Высота')
         self.entry2.configure(state='normal', fg="#b8b8b8")
         self.entrybind2_in = self.entry2.bind('<Button-1>', lambda x: self.on_focus_in(self.entry2))
@@ -132,36 +134,37 @@ class Main(Tk):
         self.leftframe.grid_columnconfigure(2, weight=3)
 
         self.check = False
-        self.checkbutton = Checkbutton(self.leftframe, bg=self.majorcolor,
-                                activebackground=self.majorcolor, command=self.check_change)
-        self.checkbutton.grid(row=6, column=3, pady=5, padx=10, sticky='nsew')
-
-        # self.inverselabel = ttk.Label(self.leftframe, style="infolabel.TLabel", 
-        #                            background=self.majorcolor, text="- Инверсия")
-        # self.inverselabel.grid(row=7, column=2, columnspan=3, pady=5, padx=10, sticky="w")
+        self.checkbutton = Checkbutton(self.leftframe, bg=self.majorcolor, text='⮁', fg="white",
+                        font=self.font13, activebackground=self.majorcolor, command=self.check_change)
+        self.checkbutton.grid(row=7, column=3, pady=0, padx=0, sticky='nsew')
 
         self.gridbutton = ttk.Button(self.leftframe, text='Построить сетку', 
                         command= lambda: self.make_crossword_grid(self.entry1.get(), self.entry2.get()))
-        self.gridbutton.grid(row=7, column=0, columnspan=4, pady=10, padx=10, sticky="nsew")
+        self.gridbutton.grid(row=8, column=0, columnspan=4, pady=10, padx=10, sticky="nsew")
 
-        self.entry3 = Entry(self.leftframe, justify=CENTER, width=25)
-        self.entry3.grid(row=8, column=0, padx=10, columnspan=4)
-        self.entry3.insert(0, 'Кол-во итераций (def 1000)')
+        self.iterationlabel = ttk.Label(self.leftframe, style="infolabel.TLabel", 
+                                   background=self.majorcolor, text='Кол-во итераций:')
+        self.iterationlabel.grid(row=9, column=0, columnspan=3, pady=0, padx=10, sticky="w")
+
+        self.entry3 = Entry(self.leftframe, justify=CENTER, width=8)
+        self.entry3.grid(row=9, column=2, pady=5, padx=10, columnspan=2)
+        self.entry3.insert(0, 'def 1000')
         self.entry3.configure(state='normal', fg="#b8b8b8")
         self.entrybind3_in = self.entry3.bind('<Button-1>', lambda x: self.on_focus_in(self.entry3))
         self.entrybind3_out = self.entry3.bind(
-            '<FocusOut>', lambda x: self.on_focus_out(self.entry3, 'Кол-во итераций (def 1000)'))
+            '<FocusOut>', lambda x: self.on_focus_out(self.entry3, 'def 1000'))
 
         self.generatorbutton = ttk.Button(self.leftframe, text='Сгенерировать\nкроссворд', 
-                                          command=lambda: self.notifiationlabel.config(text='Словарь не загружен\nили не построена сетка', 
-                                          style="notificationlabel.TLabel", foreground='red'))
-        self.generatorbutton.grid(row=9, column=0, columnspan=4, pady=10, padx=10, sticky="nsew")
+                                command=lambda: self.notifiationlabel.config(
+                                    text='Словарь не загружен\nили не построена сетка', 
+                                style="notificationlabel.TLabel", foreground='red'))
+        self.generatorbutton.grid(row=11, column=0, columnspan=4, pady=10, padx=10, sticky="nsew")
         # self.leftframe.grid_rowconfigure(8, weight=1)
 
         self.savebutton = ttk.Button(self.leftframe, text='Сохранить в\nPDF-файл', 
                         command=lambda: self.notifiationlabel.config(
                         text='Сетка отсутствует\nили она пуста', foreground='red'))
-        self.savebutton.grid(row=10, column=0, columnspan=4, pady=10, padx=10, sticky="nsew")
+        self.savebutton.grid(row=12, column=0, columnspan=4, pady=10, padx=10, sticky="nsew")
         # self.leftframe.grid_rowconfigure(9, weight=1)
 
 
@@ -171,9 +174,9 @@ class Main(Tk):
         self.rightframe.grid_rowconfigure(0, weight=1)
         self.rightframe.grid_columnconfigure(0, weight=1)
         
-    # === Служебные функции и обработчики событий =======================================
-    
-    # entry изменения
+
+    # === СЛУЖЕБНЫЕ ФУНКЦИИ И ОБРАБОТЧИКИ СОБЫТИЙ =======================================
+    # функции оформления entry 1/2
     def on_focus_in(self, entry):
         if entry.cget('state') == 'normal':
             entry.configure(state='normal', fg="black")
@@ -182,13 +185,17 @@ class Main(Tk):
         if entry.get() == "":
             entry.insert(0, placeholder)
             entry.configure(state='normal', fg="#b8b8b8")
-    # функция ограничителя ввода
+    # функция валидации и ограничения ввода
     def char_valid(self, newval):
         return re.match(u"^\w{0,1}$" , newval, re.UNICODE) is not None # "^\w{0,1}$"
     # функция смены полярности сетки
     def check_change(self):
-        if self.check: self.check = False 
-        else: self.check = True
+        if self.check: 
+            self.check = False
+            self.checkbutton.config(fg="white")
+        else: 
+            self.check = True
+            self.checkbutton.config(fg="red")
         self.make_crossword_grid(self.entry1.get(), self.entry2.get())
     # функция выбора ячеек
     def cell_picker(self, event, entry, i, j):
@@ -222,17 +229,16 @@ class Main(Tk):
                 entry.insert(0, event.char.upper())
             entry.config(validate="key", fg='black', bg=self.fixedcellcolor, 
                         validatecommand=self.char_check)
-            self.enabledcell[i][j] = 'F'
     # функция расфиксации ячеек, заполненных вручную
     def unfixing_cell(self, event, entry, i, j):
-        if self.enabledcell[i][j] == 'F':
+        if self.grid[i][j]['bg'] == self.fixedcellcolor:
             entry.delete(0, END)
             entry.config(state=NORMAL, validate="key", fg='black', bg=self.cellcolor, 
                          validatecommand=self.char_check)
             self.enabledcell[i][j] = '1'
 
-    # === Основные функции приложения ==================================================
-    
+
+    # === ОСНОВНЫЕ ФУНКЦИИ ПРИЛОЖЕНИЯ ==================================================================
     # функция открытия директории
     def open_directory(self):
         try:
@@ -355,22 +361,23 @@ class Main(Tk):
                             style="notificationlabel.TLabel", foreground='red')
             self.generatorbutton.config(command=None)
     
-    # функция очистки сетки
+    # функция очистки сетки от букв
     def clear_grid(self):
         for x in range(0, self.h):
             for y in range(0, self.w):
-                if self.enabledcell[x][y] not in ('0', 'F'):
-                    self.grid[x][y].delete(0, END)
+                if self.enabledcell[x][y] != '0':
+                    if self.grid[x][y]['bg'] != self.fixedcellcolor:
+                        self.grid[x][y].delete(0, END)
     
     # функция очистки enabledcell
     def clear_enabledcell_list(self):
         for x in range(0, self.h):
             for y in range(0, self.w):
-                if self.enabledcell[x][y] not in ('0', 'F'):
+                if self.enabledcell[x][y] != '0':
                     self.enabledcell[x][y] = '1'
 
-    # настройка паддингов для enabledcell
-    def padding_set(self, mode):
+    # функция настройки паддингов для enabledcell
+    def set_paddings(self, mode):
         if mode == 'set':
             # добавление паддингов
             self.enabledcell.insert(0, ['0' for i in range(self.w)])
@@ -386,8 +393,8 @@ class Main(Tk):
                 self.enabledcell[x].pop()
             self.enabledcell.pop()
     
-    # вывод результатов анализа сетки
-    def analize_results(self, turn='on'):
+    # опциональная функция вывода результатов анализа сетки
+    def show_analize_results(self, turn='on'):
         """turn: on/off (default "on")"""
         if turn == 'on':
             print('\n=== Результат анализа сетки ===')        
@@ -396,8 +403,8 @@ class Main(Tk):
                     print(self.enabledcell[x][y].center(2), end=' ')
                 print()
             try:
-                print('h_words:', self.h_words)
-                print('v_words:', self.v_words)
+                print('h_words:', self.h_params)
+                print('v_words:', self.v_params)
             except AttributeError:
                 pass
             print('=== ======================= ===')
@@ -408,17 +415,19 @@ class Main(Tk):
         Aнализ 0 | 1 -> E, H, V, VH, vH, Vh, h, v, +
         Horizontal: H VH vH Vh h +
         Vertical: V VH vH Vh v +
-        Other: E F
+        Other: E
         """
-        self.h_words = []
-        self.v_words = []
+        self.h_params = []
+        self.v_params = []
         self.fixed_words = []
-        self.h_signs = ('1', 'h', 'H', 'VH', 'Vh', 'vH', '+', 'F')
-        self.v_signs = ('1', 'v', 'V', 'VH', 'Vh', 'vH', '+', 'F')
+        self.max_length = 0
+        self.h_signs = ('1', 'h', 'H', 'VH', 'Vh', 'vH', '+')
+        self.v_signs = ('1', 'v', 'V', 'VH', 'Vh', 'vH', '+')
         # горизонталь
         for x in range(1, len(self.enabledcell)-1):
             l = 0
             intersection = 0
+            status = "c"
             for y in range(1, len(self.enabledcell[x])-1):
                 if self.enabledcell[x][y] in self.h_signs:
                     upper = self.enabledcell[x-1][y]
@@ -441,27 +450,33 @@ class Main(Tk):
                         if upper in self.v_signs:
                             self.enabledcell[x][y] = 'vH'
                             intersection += 1
-                        self.h_words.append([])
-                        self.h_words[-1].append(x-1)
-                        self.h_words[-1].append(y-1)
+                        self.h_params.append([])
+                        self.h_params[-1].append(x-1)
+                        self.h_params[-1].append(y-1)
                         l += 1
                     if left in self.h_signs:
                         # Начало вертикального из буквы горизонтального T
                         if upper == '0' and lower in self.v_signs:
                             self.enabledcell[x][y] = 'Vh'
                             intersection += 1
+                            
                         # Продолжение горизонтального --
                         if upper == '0' and lower == '0':
                             self.enabledcell[x][y] = 'h'
+                            if self.grid[x-1][y-1]['bg'] == self.fixedcellcolor:
+                                status = "f"
                         # Пересечение слов в любом месте
                         if upper in self.v_signs:
                             self.enabledcell[x][y] = '+'
                             intersection += 1
                         l += 1
                         if right == '0':
-                            self.h_words[-1].append(intersection)
-                            self.h_words[-1].append(l)
-                            self.h_words[-1].append('h')
+                            self.h_params[-1].append(intersection)
+                            self.h_params[-1].append(l)
+                            self.h_params[-1].append('h')
+                            self.h_params[-1].append(status)
+                            if self.max_length < l:
+                                self.max_length = l
                             l = 0
                             intersection = 0
 
@@ -469,6 +484,7 @@ class Main(Tk):
         for y in range(1, len(self.enabledcell[0])-1):
             l = 0
             intersection = 0
+            status = "c"
             for x in range(1, len(self.enabledcell)-1):
                 if self.enabledcell[x][y] in self.v_signs:
                     upper = self.enabledcell[x-1][y]
@@ -488,9 +504,9 @@ class Main(Tk):
                         if left in self.h_signs:
                             self.enabledcell[x][y] = 'Vh'
                             intersection += 1
-                        self.v_words.append([])
-                        self.v_words[-1].append(x-1)
-                        self.v_words[-1].append(y-1)
+                        self.v_params.append([])
+                        self.v_params[-1].append(x-1)
+                        self.v_params[-1].append(y-1)
                         l += 1
                     if upper in self.v_signs:
                         # Начало горизонтального из буквы вертикального |-
@@ -500,19 +516,24 @@ class Main(Tk):
                         # Продолжение вертикального |
                         if right == '0' and left == '0':
                             self.enabledcell[x][y] = 'v'
+                            if self.grid[x-1][y-1]['bg'] == self.fixedcellcolor:
+                                status = "f"
                         # Пересечение слов в любом месте
                         if left in self.h_signs:
                             self.enabledcell[x][y] = '+'
                             intersection += 1
                         l += 1
                         if lower == '0':
-                            self.v_words[-1].append(intersection)
-                            self.v_words[-1].append(l)
-                            self.v_words[-1].append('v')
+                            self.v_params[-1].append(intersection)
+                            self.v_params[-1].append(l)
+                            self.v_params[-1].append('v')
+                            self.v_params[-1].append(status)
+                            if self.max_length < l:
+                                self.max_length = l
                             l = 0
                             intersection = 0
 
-    # установка ограничения на итерации
+    # функция установки ограничения на итерации
     def set_interation_limit(self, limit):
         if limit.isdigit():
             limit = int(limit)
@@ -524,134 +545,178 @@ class Main(Tk):
                 return limit
         else:
             return 1000
-        
-    # рандомайзер слов и заполнитель сетки
-    def word_randomizer(self, X, Y, length, position, show=True):
-        pattern = ''
-        words_with_fixed_len = '\n'.join(self.dictionary[length])
+    
+    # функция настройки конфигов сетки
+    def set_config(self, X, Y, length, position):
         for l in range(length):
-            if position in ('h','H'):
-                char = self.grid[X][Y+l].get()
-                if char == '':
-                    pattern += '.'
-                else:
-                    pattern += char
-            if position in ('v','V'):
-                char = self.grid[X+l][Y].get()
-                if char == '':
-                    pattern += '.'
-                else:
-                    pattern += char
-        pattern = re.compile(pattern)
-        result = pattern.findall(words_with_fixed_len)
-        try:
-            is_not_okay = True
-            while is_not_okay:
-                is_not_okay = False
-                word = result[random.randint(0, len(result)-1)]
-                if 'ь' in word or 'ъ' in word:
-                    if position in ('h','H'):
-                        for l in range(length):
-                            if word[l] in self.wrong_letters and self.enabledcell[X][Y+l] == 'Vh':
-                                is_not_okay = True
-                                break
-                    if position in ('v','V'):
-                        for l in range(length):
-                            if word[l] in self.wrong_letters and self.enabledcell[X+l][Y] == 'vH':
-                                is_not_okay = True
-                                break
-               
-            for l in range(length):
-                if position in ('h','H'):
-                    self.grid[X][Y+l].insert(0, word[l])
-                    if self.enabledcell[X][Y+l] in self.h_signs:
-                        self.grid[X][Y+l].config(bg=self.cellcolor)
-                    if self.enabledcell[X][Y+l] == 'F':
-                        self.grid[X][Y+l].config(bg=self.fixedcellcolor)
-                if position in ('v','V'):
-                    self.grid[X+l][Y].insert(0, word[l])
-                    if self.enabledcell[X+l][Y] in self.v_signs:
-                        self.grid[X+l][Y].config(bg=self.cellcolor)
-                    if self.enabledcell[X+l][Y] == 'F':
-                        self.grid[X+l][Y].config(bg=self.fixedcellcolor)
-            if show:
-                print('len', length, pattern, word, position)
-        except:
-            self.stop = False
-            self.empty += 1
-            for l in range(length):
-                if position in ('h','H'):
-                    if self.enabledcell[X][Y+l] in self.h_signs:
-                        self.grid[X][Y+l].config(bg=self.deniedcolor)
-                    if self.enabledcell[X][Y+l] == 'F':
-                        self.grid[X][Y+l].config(bg=self.fixedcellcolor)
-                if position in ('v','V'):
-                    if self.enabledcell[X+l][Y] in self.v_signs:
-                        self.grid[X+l][Y].config(bg=self.deniedcolor)
-                    if self.enabledcell[X+l][Y] == 'F':
-                        self.grid[X+l][Y].config(bg=self.fixedcellcolor)
+            if position in ('h','H') and self.enabledcell[X][Y+l] in self.h_signs:
+                if self.grid[X][Y+l]['bg'] != self.fixedcellcolor:
+                    self.grid[X][Y+l].config(bg=self.deniedcolor)
+            if position in ('v','V') and self.enabledcell[X+l][Y] in self.v_signs: 
+                if self.grid[X+l][Y]['bg'] != self.fixedcellcolor:
+                    self.grid[X+l][Y].config(bg=self.deniedcolor)
 
-    # генерация кроссворда
+    # функция показа уведомления о завершении
+    def show_messagebox(self, finish, best):
+        self.notifiationlabel.config(text='\n')
+        if self.min_empty_count == 0:
+            messagebox.showinfo(title="Кроссворд успешно сгенерирован!", 
+                message=f'Проведено итераций — {self.iteration-1}/{self.iteration_limit} '
+                        f'({int(finish//60)} мин {round(finish%60, 1)} сек)\n'
+                        f'Всего слов — {len(self.h_words+self.v_words)} '
+                        f'({len(self.h_words)} горизонтальных, {len(self.v_words)} вертикальных)')
+        else:
+            answer = messagebox.askokcancel(title="Кроссворд не был заполнен :(", 
+                message=f'Проведено итераций — {self.iteration-1}/{self.iteration_limit} '
+                        f'({int(finish//60)} мин {round(finish%60, 1)} сек)\n'
+                        f'Наилучших попыток {best} '
+                        f'с количеством пропусков — {self.min_empty_count} слов\n\n'
+                        f'Желаете попробовать снова? (OK)')
+            if answer:
+                self.generator()
+    
+    # функция добавления полученных слов в массивы
+    def word_adding(self, word, position, status='c'):
+        if status == 'c':
+            if position in ('h','H'):
+                self.h_words.append(word)
+            if position in ('v','V'):
+                self.v_words.append(word)
+        else:
+            if position in ('h','H'):
+                self.h_words.append(word+' (f)')
+            if position in ('v','V'):
+                self.v_words.append(word+' (f)')
+        
+    # функция подбора слов и заполнения сетки
+    def word_randomizer(self, X, Y, length, position, status):
+        if status == "c":
+            pattern = ''
+            words_with_fixed_len = '\n'.join(self.dictionary[length])
+            for l in range(length):
+                if position in ('h','H'):
+                    char = self.grid[X][Y+l].get()
+                    if char == '':
+                        pattern += '.'
+                    else:
+                        pattern += char
+                if position in ('v','V'):
+                    char = self.grid[X+l][Y].get()
+                    if char == '':
+                        pattern += '.'
+                    else:
+                        pattern += char
+            pattern = re.compile(pattern)
+            result = pattern.findall(words_with_fixed_len)
+            try:
+                # генерация слова с учетом неправильных начальных букв (Ъ, Ь)
+                is_not_okay = True
+                while is_not_okay:
+                    is_not_okay = False
+                    word = result[random.randint(0, len(result)-1)]
+                    if word in (self.h_words + self.v_words):
+                        if len(self.h_words + self.v_words) > 1:
+                            continue
+                        else:
+                            is_not_okay = True
+                            continue
+                    if 'ь' in word or 'ъ' in word:
+                        if position in ('h','H'):
+                            for l in range(length):
+                                if word[l] in self.wrong_letters and self.enabledcell[X][Y+l] == 'Vh':
+                                    is_not_okay = True
+                                    break
+                        if position in ('v','V'):
+                            for l in range(length):
+                                if word[l] in self.wrong_letters and self.enabledcell[X+l][Y] == 'vH':
+                                    is_not_okay = True
+                                    break
+                # побуквенная вставка в сетку
+                for l in range(length):
+                    if position in ('h','H'):
+                        self.grid[X][Y+l].insert(0, word[l])
+                    if position in ('v','V'):
+                        self.grid[X+l][Y].insert(0, word[l])
+                # добавление слов в H/V списки
+                self.word_adding(word, position)
+                #print('len', length, pattern, word, position)
+            except:
+                self.stop = False
+                self.empty += 1
+                if self.iteration == self.iteration_limit:
+                    self.set_config(X, Y, length, position)
+        # обработка фиксированных слов
+        else:
+            word = ''
+            for l in range(length):
+                if position in ('h','H'):
+                    word = word + self.grid[X][Y+l].get()
+                if position in ('v','V'):
+                    word = word + self.grid[X+l][Y].get()
+            self.word_adding(word, position, status)
+            
+
+    # основная функция генерации кроссворда
     def generator(self):
         self.notifiationlabel.config(text='Ожидание...\n', foreground=self.waitcolor)
         self.clear_enabledcell_list()
 
         # анализ сетки
-        self.analize_results(turn='off') # on/off
-        self.padding_set('set')
+        self.show_analize_results(turn='off') # on/off
+        self.set_paddings('set')
         self.analize_grid()
-        self.padding_set('del')
-        self.analize_results(turn='off') # on/off
+        self.set_paddings('del')
+        self.show_analize_results(turn='on') # on/off
 
-        # сортировка по убыванию в первую очередь по кол-ву пересечений, во вторую - по длине 
-        self.all_words = self.h_words + self.v_words
-        self.all_words.sort(key = lambda x: x[3], reverse=True)
-        self.all_words.sort(key = lambda x: x[2], reverse=True)
+        # сортировка
+        self.sum_params = self.h_params + self.v_params
+        self.sum_params.sort(key = lambda x: x[3], reverse=True) # по длина
+        self.sum_params.sort(key = lambda x: x[2], reverse=True) # по кол-ву пересечений
 
         # настройка количества итераций
-        iteration = 1
+        self.iteration = 1
         self.stop = False
-        iteration_limit = self.set_interation_limit(self.entry3.get())
+        self.iteration_limit = self.set_interation_limit(self.entry3.get())
+        for x in range(len(self.enabledcell)):
+            for y in range(len(self.enabledcell[x])):
+                if self.enabledcell[x][y] in (self.h_signs + self.v_signs):
+                    if self.grid[x][y]['bg'] != self.fixedcellcolor:
+                        self.grid[x][y].config(bg=self.cellcolor)
         
         # алгоритм генерации и заполнения слов
+        start_time = time.time()
         self.min_empty_count = 10
         best_iteration_count = 0
-        start_time = time.time()
         self.wrong_letters = ('ь', 'ъ')
-        while not self.stop and iteration <= iteration_limit:
-            self.clear_grid()
-            self.empty = 0
-            self.stop = True
-            print(f'=== Итерация #{iteration} ===')
-            for word in (self.all_words):
-                self.word_randomizer(word[0], word[1], word[3], word[4], False)
-            if self.empty <= self.min_empty_count:
-                if self.min_empty_count == self.empty:
-                    best_iteration_count += 1
-                else:
-                    best_iteration_count = 1
-                    self.min_empty_count = self.empty
-            iteration += 1
-
-        finish_time = time.time() - start_time
-        self.notifiationlabel.config(text='\n')
-        if self.min_empty_count == 0:
-            messagebox.showinfo(title="Кроссворд успешно сгенерирован!", 
-                message=f'Проведено итераций — {iteration-1}/{iteration_limit} '
-                        f'({int(finish_time//60)} мин {round(finish_time%60, 1)} сек)\n'
-                        f'Всего слов — {len(self.all_words)} '
-                        f'({len(self.h_words)} горизонтальных, {len(self.v_words)} вертикальных)')
+        if self.max_length <= self.longest:
+            while not self.stop and self.iteration <= self.iteration_limit:
+                self.clear_grid()
+                self.h_words = []
+                self.v_words = []
+                self.empty = 0
+                self.stop = True
+                #print(f'=== Итерация #{self.iteration} ===')
+                for word in (self.sum_params):
+                    self.word_randomizer(word[0], word[1], word[3], word[4], word[5])
+                if self.empty <= self.min_empty_count:
+                    if self.min_empty_count == self.empty:
+                        best_iteration_count += 1
+                    else:
+                        best_iteration_count = 1
+                        self.min_empty_count = self.empty
+                self.iteration += 1
+            self.show_messagebox(time.time()-start_time, best_iteration_count)
+            print(f'\nhorizontal {self.h_words}')
+            print(f'vertical {self.v_words}')
+            self.savebutton.config(command=self.save_in_file)
         else:
-            answer = messagebox.askokcancel(title="Кроссворд не был заполнен :(", 
-                message=f'Проведено итераций — {iteration-1}/{iteration_limit} '
-                        f'({int(finish_time//60)} мин {round(finish_time%60, 1)} сек)\n'
-                        f'Наилучших попыток {best_iteration_count} '
-                        f'с количеством пропусков — {self.min_empty_count} слов\n\n'
-                        f'Желаете попробовать снова? (OK)')
-            if answer:
-                self.generator()
+            self.h_words = []
+            self.v_words = []
+            self.notifiationlabel.config(
+                                text='В словаре отсутствуют\nслова такой длины!', 
+                                foreground=self.deniedcolor)
 
-    # Сохранение в pdf файл
+    # функция сохранения в pdf файл
     def save_in_file(self):
         self.wm_geometry("+%d+%d" % (100, 50))
 
@@ -665,13 +730,38 @@ class Main(Tk):
         snapshot = ImageGrab.grab(bbox=(x1, y1, x2, y2))
         enhancer = ImageEnhance.Sharpness(snapshot)
         snapshot_enhanced = enhancer.enhance(2)
-        snapshot_enhanced.save(f'{self.savefolderpath}/CW_{self.wordscount}_[{self.w}x{self.h}].pdf', 
-                        format='PDF', quality=200)
+        koefw = 567/snapshot_enhanced.size[0]
+        koefh = 567/snapshot_enhanced.size[1]
+        new_size = (round(snapshot_enhanced.size[0]*koef), round(snapshot_enhanced.size[1]*koef))
+        print(new_size)
+        snapshot_enhanced = snapshot_enhanced.resize(new_size)
+        tempscreenpath = f'{self.savefolderpath}/tempscreen.png'
+        snapshot_enhanced.save(tempscreenpath)
+
+        pdf = FPDF()
+        pdf.add_page()
+        pdf.set_font("Arial", size=12)
+        pdf.image(tempscreenpath, x=5, y=5)
+        # for i in range(len(self.v_words)):
+        #     pdf.cell(200, 10, txt=f"{i}", ln=1, align="C")
+        pdf.output("simple_demo.pdf")
+
+        counter = 1
+        while counter < 100:
+            file_name = f'{self.w}x{self.h}_crossword_[{len(self.h_words)}h, {len(self.v_words)}v]_{counter}.pdf'
+            if not os.path.exists(f'{self.savefolderpath}/{file_name}'):
+                pass
+                # snapshot_enhanced.save(f'{self.savefolderpath}/{file_name}', 
+                #     format='PDF', quality=200)
+                break
+            else:
+                counter += 1
+
 
 
 if __name__ == "__main__":
     main = Main()
-    main.geometry(f'{900}x{640}') # main.winfo_screenheight()
+    main.geometry(f'{860}x{620}') # main.winfo_screenheight()
     main.wm_geometry("+%d+%d" % (50, 10))
     main.title('CSV Convolution')
     main['bg'] = 'white'
