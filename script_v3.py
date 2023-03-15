@@ -731,28 +731,51 @@ class Main(Tk):
         enhancer = ImageEnhance.Sharpness(snapshot)
         snapshot_enhanced = enhancer.enhance(2)
         koefw = 567/snapshot_enhanced.size[0]
-        koefh = 567/snapshot_enhanced.size[1]
-        new_size = (round(snapshot_enhanced.size[0]*koef), round(snapshot_enhanced.size[1]*koef))
-        print(new_size)
+        koefh = 500/snapshot_enhanced.size[1]
+        if koefw < koefh:
+            new_size = (round(snapshot_enhanced.size[0]*koefw), 
+                        round(snapshot_enhanced.size[1]*koefw))
+        else:
+            new_size = (round(snapshot_enhanced.size[0]*koefh), 
+                        round(snapshot_enhanced.size[1]*koefh))
         snapshot_enhanced = snapshot_enhanced.resize(new_size)
         tempscreenpath = f'{self.savefolderpath}/tempscreen.png'
         snapshot_enhanced.save(tempscreenpath)
 
         pdf = FPDF()
         pdf.add_page()
-        pdf.set_font("Arial", size=12)
+        #pdf.set_doc_option('windows-1252')
         pdf.image(tempscreenpath, x=5, y=5)
-        # for i in range(len(self.v_words)):
-        #     pdf.cell(200, 10, txt=f"{i}", ln=1, align="C")
-        pdf.output("simple_demo.pdf")
+        # line
+        pdf.set_draw_color(255, 0, 0)
+        pdf.set_line_width(1)
+        pdf.line(10, 185, 200, 185)
+
+        pdf.set_font("Arial", 'B', size=16, uni=True)
+        pdf.cell(0, 175, txt="", ln=1)
+        pdf.set_text_color(0, 15, 181)
+        pdf.cell(70, 10, txt="Horizontal", ln=0, align="L")
+        pdf.cell(20)
+        pdf.cell(70, 10, txt="Vertical", ln=1, align="L")
+
+        pdf.set_text_color(0, 0, 0)
+        pdf.set_font("Arial", size=12)
+        longer = max((len(self.h_words), len(self.v_words)))
+        for i in range(longer):
+            try:
+                pdf.cell(70, 5, txt="{}".format(i+1), ln=0, align="L")
+            except: pass
+            pdf.cell(20)
+            try:
+                pdf.cell(70, 5, txt="{}".format(i+1), ln=1, align="L")
+            except: pass
 
         counter = 1
         while counter < 100:
             file_name = f'{self.w}x{self.h}_crossword_[{len(self.h_words)}h, {len(self.v_words)}v]_{counter}.pdf'
             if not os.path.exists(f'{self.savefolderpath}/{file_name}'):
-                pass
-                # snapshot_enhanced.save(f'{self.savefolderpath}/{file_name}', 
-                #     format='PDF', quality=200)
+                pdf.output(f'{self.savefolderpath}/{file_name}')
+                os.remove(tempscreenpath)
                 break
             else:
                 counter += 1
