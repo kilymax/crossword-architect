@@ -1,3 +1,4 @@
+test.py
 test1.py
 test2.py
 script.py
@@ -8,7 +9,6 @@ words2.txt
 *.exe
 *.rar
 *.pdf
-
 
 словари
 presets

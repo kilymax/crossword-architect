@@ -4,7 +4,7 @@ import re
 import random
 import time
 
-from fpdf import FPDF
+# import aspose.pdf as pdf
 from tkinter import *
 from tkinter import filedialog as fd
 from tkinter import ttk
@@ -38,7 +38,7 @@ class Main(Tk):
         self.waitcolor = "#ffe600"
         #entry colors
         self.disabledentrycolor = "#242424"
-        self.cellcolor = "#91bbff"
+        self.cellcolor = "white"
         self.fixedcellcolor = "#57ff47"
 
         self.eng_alphabet = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 
@@ -243,8 +243,8 @@ class Main(Tk):
     def open_directory(self):
         try:
             # выбор и открытие папки
-            # self.folderpath = fd.askdirectory()
-            self.folderpath = 'c:/.My/Freelance/CrosswordArchitect'
+            self.folderpath = fd.askdirectory()
+            # self.folderpath = 'D:\my\Programming\crossword-architect'
             self.notifiationlabel.config(text=1*'\n', 
                             style="notificationlabel.TLabel", foreground='red')
             # Чтение данных и сохранение в массивы
@@ -479,6 +479,7 @@ class Main(Tk):
                                 self.max_length = l
                             l = 0
                             intersection = 0
+                            status = "c"
 
         # вертикаль
         for y in range(1, len(self.enabledcell[0])-1):
@@ -532,6 +533,7 @@ class Main(Tk):
                                 self.max_length = l
                             l = 0
                             intersection = 0
+                            status = "c"
 
     # функция установки ограничения на итерации
     def set_interation_limit(self, limit):
@@ -666,7 +668,7 @@ class Main(Tk):
         self.set_paddings('set')
         self.analize_grid()
         self.set_paddings('del')
-        self.show_analize_results(turn='on') # on/off
+        self.show_analize_results(turn='off') # on/off
 
         # сортировка
         self.sum_params = self.h_params + self.v_params
@@ -730,52 +732,67 @@ class Main(Tk):
         snapshot = ImageGrab.grab(bbox=(x1, y1, x2, y2))
         enhancer = ImageEnhance.Sharpness(snapshot)
         snapshot_enhanced = enhancer.enhance(2)
-        koefw = 567/snapshot_enhanced.size[0]
-        koefh = 500/snapshot_enhanced.size[1]
-        if koefw < koefh:
-            new_size = (round(snapshot_enhanced.size[0]*koefw), 
-                        round(snapshot_enhanced.size[1]*koefw))
-        else:
-            new_size = (round(snapshot_enhanced.size[0]*koefh), 
-                        round(snapshot_enhanced.size[1]*koefh))
-        snapshot_enhanced = snapshot_enhanced.resize(new_size)
-        tempscreenpath = f'{self.savefolderpath}/tempscreen.png'
-        snapshot_enhanced.save(tempscreenpath)
+        # koefw = 594/snapshot_enhanced.size[0]
+        # koefh = 594/snapshot_enhanced.size[1]
+        # if koefw <= koefh:
+        #     new_size = (round(snapshot_enhanced.size[0]*koefw), 
+        #                 round(snapshot_enhanced.size[1]*koefw))
+        # else:
+        #     new_size = (round(snapshot_enhanced.size[0]*koefh), 
+        #                 round(snapshot_enhanced.size[1]*koefh))
+        # snapshot_enhanced = snapshot_enhanced.resize(new_size)
+        # tempscreenpath = f'{self.savefolderpath}/tempscreen.png'
+        # snapshot_enhanced.save(tempscreenpath)
 
-        pdf = FPDF()
-        pdf.add_page()
-        #pdf.set_doc_option('windows-1252')
-        pdf.image(tempscreenpath, x=5, y=5)
-        # line
-        pdf.set_draw_color(255, 0, 0)
-        pdf.set_line_width(1)
-        pdf.line(10, 185, 200, 185)
 
-        pdf.set_font("Arial", 'B', size=16, uni=True)
-        pdf.cell(0, 175, txt="", ln=1)
-        pdf.set_text_color(0, 15, 181)
-        pdf.cell(70, 10, txt="Horizontal", ln=0, align="L")
-        pdf.cell(20)
-        pdf.cell(70, 10, txt="Vertical", ln=1, align="L")
+        
 
-        pdf.set_text_color(0, 0, 0)
-        pdf.set_font("Arial", size=12)
-        longer = max((len(self.h_words), len(self.v_words)))
-        for i in range(longer):
-            try:
-                pdf.cell(70, 5, txt="{}".format(i+1), ln=0, align="L")
-            except: pass
-            pdf.cell(20)
-            try:
-                pdf.cell(70, 5, txt="{}".format(i+1), ln=1, align="L")
-            except: pass
+        # document = pdf.Document()
+        # page = document.pages.add()
+        # textBuilder = pdf.text.TextBuilder(page)
 
+        # y = 770
+        # x = 5
+        # check = False
+        # horizontal = "ГОРИЗОНТАЛЬ: "
+        # for i in range(len(self.h_words)):
+        #     horizontal += f" {i+1}-{self.h_words[i].lower()}"
+        #     if i > 10 and not check:
+        #         fragment = pdf.text.TextFragment(horizontal)
+        #         fragment.position = pdf.text.Position(x, y)
+        #         textBuilder.append_text(fragment)
+        #         horizontal = ""
+        #         check = True
+        # fragment = pdf.text.TextFragment(horizontal)
+        # fragment.position = pdf.text.Position(x, y-15)
+        # textBuilder.append_text(fragment)
+
+        # y = y - 80
+        # check = False
+        # vertical = "ВЕРТИКАЛЬ: "
+        # for i in range(len(self.v_words)):
+        #     vertical += f" {i+1}-{self.v_words[i].lower()}"
+        #     if i > 10 and not check:
+        #         fragment = pdf.text.TextFragment(vertical)
+        #         fragment.position = pdf.text.Position(x, y)
+        #         textBuilder.append_text(fragment)
+        #         vertical = ""
+        #         check = True
+        # fragment = pdf.text.TextFragment(vertical)
+        # fragment.position = pdf.text.Position(x, y-15)
+        # textBuilder.append_text(fragment)
+
+        # stamp = pdf.ImageStamp("tempscreen.png")
+        # page.add_stamp(stamp)
+        
         counter = 1
         while counter < 100:
             file_name = f'{self.w}x{self.h}_crossword_[{len(self.h_words)}h, {len(self.v_words)}v]_{counter}.pdf'
             if not os.path.exists(f'{self.savefolderpath}/{file_name}'):
-                pdf.output(f'{self.savefolderpath}/{file_name}')
-                os.remove(tempscreenpath)
+                snapshot_enhanced.save(f'{self.savefolderpath}/{file_name}', 
+                        format='PDF', quality=200)
+                # document.save(f'{self.savefolderpath}/{file_name}')
+                # os.remove(tempscreenpath)
                 break
             else:
                 counter += 1
