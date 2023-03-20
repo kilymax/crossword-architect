@@ -541,8 +541,8 @@ class Main(Tk):
             limit = int(limit)
             if limit < 0:
                 return 1
-            elif limit > 10000:
-                return 10000
+            elif limit > 100000:
+                return 100000
             else:
                 return limit
         else:
@@ -572,7 +572,7 @@ class Main(Tk):
                 message=f'Проведено итераций — {self.iteration-1}/{self.iteration_limit} '
                         f'({int(finish//60)} мин {round(finish%60, 1)} сек)\n'
                         f'Наилучших попыток {best} '
-                        f'с количеством пропусков — {self.min_empty_count} слов\n\n'
+                        f'с количеством пропусков — {self.min_empty_count} слов(а)\n\n'
                         f'Желаете попробовать снова? (OK)')
             if answer:
                 self.generator()
@@ -617,11 +617,15 @@ class Main(Tk):
                     is_not_okay = False
                     word = result[random.randint(0, len(result)-1)]
                     if word in (self.h_words + self.v_words):
-                        if len(self.h_words + self.v_words) > 1:
-                            continue
-                        else:
-                            is_not_okay = True
-                            continue
+                        result.remove(word)
+                        is_not_okay = True
+                        continue
+                        # if len(result) > 1 and repeat <= 10:
+                        #     is_not_okay = True
+                        #     repeat += 1
+                        #     continue
+                        # else:
+                        #     raise 
                     if 'ь' in word or 'ъ' in word:
                         if position in ('h','H'):
                             for l in range(length):
@@ -668,7 +672,7 @@ class Main(Tk):
         self.set_paddings('set')
         self.analize_grid()
         self.set_paddings('del')
-        self.show_analize_results(turn='off') # on/off
+        self.show_analize_results(turn='on') # on/off
 
         # сортировка
         self.sum_params = self.h_params + self.v_params
@@ -708,8 +712,11 @@ class Main(Tk):
                         self.min_empty_count = self.empty
                 self.iteration += 1
             self.show_messagebox(time.time()-start_time, best_iteration_count)
-            print(f'\nhorizontal {self.h_words}')
-            print(f'vertical {self.v_words}')
+            test_set = set(self.h_words)
+            print(f'\n{len(self.h_words)} ({len(test_set)}) horizontal {self.h_words}')
+            test_set = set(self.v_words)
+            print(f'{len(self.v_words)} ({len(test_set)}) vertical {self.v_words}')
+            
             self.savebutton.config(command=self.save_in_file)
         else:
             self.h_words = []
